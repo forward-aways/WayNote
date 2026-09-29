@@ -17,6 +17,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.errors import error_response
 from app.core.logging import get_logger, request_id_var, user_id_var
+from app.core.net import resolve_client_ip
 
 log = get_logger("access")
 
@@ -25,9 +26,16 @@ _RID_UNSAFE = re.compile(r"[^A-Za-z0-9._-]")
 
 
 class RequestContextMiddleware:
-    def __init__(self, app: ASGIApp, *, slow_request_ms: int = 800) -> None:
+    def __init__(
+        self,
+        app: ASGIApp,
+        *,
+        slow_request_ms: int = 800,
+        trusted_proxies: frozenset[str] = frozenset(),
+    ) -> None:
         self.app = app
         self.slow_request_ms = slow_request_ms
+        self.trusted_proxies = trusted_proxies
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -83,7 +91,7 @@ class RequestContextMiddleware:
                     "method": method,
                     "path": path,
                     "duration_ms": duration_ms,
-                    "ip": self._client_ip(scope),
+                    "ip": resolve_client_ip(scope, self.trusted_proxies),
                     "slow": duration_ms >= self.slow_request_ms,
                 },
             )
@@ -104,11 +112,3 @@ class RequestContextMiddleware:
         incoming = Headers(scope=scope).get("x-request-id", "")
         cleaned = _RID_UNSAFE.sub("", incoming)[:32]
         return cleaned or uuid4().hex[:12]
-
-    @staticmethod
-    def _client_ip(scope: Scope) -> str:
-        forwarded = Headers(scope=scope).get("x-forwarded-for")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        client = scope.get("client")
-        return client[0] if client else "-"

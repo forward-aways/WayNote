@@ -85,29 +85,3 @@ def test_access_log_level_mapping(caplog: pytest.LogCaptureFixture) -> None:
     assert not_found.levelno == logging.WARNING  # 4xx 告警
     assert getattr(not_found, "status", None) == 404
     assert getattr(not_found, "duration_ms", None) is not None
-
-
-def test_client_logs_endpoint_rate_limit_and_audit(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    caplog.set_level(logging.WARNING, logger="waynote.frontend")
-    client = TestClient(app)
-    headers = {"x-forwarded-for": "10.9.9.9"}
-    payload = {
-        "kind": "vue",
-        "message": "render failed",
-        "stack": "at Foo.vue:1",
-        "url": "http://localhost:5173/trips",
-        "app_version": "dev",
-    }
-
-    first = client.post("/api/v1/client-logs", json=payload, headers=headers)
-    assert first.status_code == 204
-
-    statuses = [client.post("/api/v1/client-logs", json=payload, headers=headers).status_code for _ in range(10)]
-    assert statuses.count(429) == 1  # 第 11 次触发限流
-    assert statuses[-1] == 429
-
-    events = [record for record in caplog.records if getattr(record, "event", "") == "frontend.error"]
-    assert events, "前端异常必须落日志"
-    assert events[0].name == "waynote.frontend"

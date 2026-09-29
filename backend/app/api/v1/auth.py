@@ -6,6 +6,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.api.deps import get_current_user
 from app.schemas.user import UserRegister, UserLogin, UserOut, TokenOut
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.security import hash_password, verify_password, create_access_token
 
@@ -17,6 +18,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # 注册用户接口，返回token，7天有效期
 @router.post("/register", response_model=TokenOut, status_code=201)
 def register(data: UserRegister, db: Session = Depends(get_db)):
+    if not settings.allow_registration:
+        log.warning("注册已关闭，拒绝注册请求", extra={"event": "auth.register.disabled"})
+        raise HTTPException(status_code=403, detail="注册功能已关闭")
+
     exists = db.execute(select(User).where(User.email == data.email)).scalar_one_or_none()
     if exists:
         raise HTTPException(status_code=400, detail="邮箱已被注册")

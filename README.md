@@ -129,6 +129,8 @@ cd frontend && npm run build        # 生产构建
 - **统一异常信封**：`{"detail": str, "request_id": str, "errors"?: [...]}`；422 不回显原始输入，500 不回显堆栈，数据库约束冲突转 409。
 - **脱敏**：密码 / token / authorization 等一律置 `***`，邮箱保留前两位（如 `de***@example.com`）。
 - **前端**：`src/api/http.ts` 拦截器是唯一错误出口（归一化 `ApiError`、分级留痕、401 处理）；`src/utils/logger.ts` 提供彩色分级日志（开发全量、生产仅 warn/error）；未捕获的 Vue / JS 异常节流提示并上报 `POST /api/v1/client-logs`（限流 10 次/分钟/IP + 指纹去重）。
+- **信任边界与上报加固**：`X-Forwarded-For` 仅在直连对端属于 `TRUSTED_PROXY_IPS` 白名单时采信（**生产只填反代地址，严禁公网段**）；上报限流两档（登录 20 次/分钟、匿名 2 次/分钟）+ 全局 10 次/分钟兜底；日志控制字符清洗；单文件大小上限 10MB。
+- **上线前检查**：确认 `TRUSTED_PROXY_IPS` 只包含反代地址；如不希望公开注册，可临时将 `ALLOW_REGISTRATION=false`（后续计划改为邮件验证码注册）。
 
 ## 部署（规划）
 

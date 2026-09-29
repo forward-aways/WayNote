@@ -10,10 +10,12 @@ from pathlib import Path
 
 from app.core.logging import (
     ConsoleFormatter,
+    DailySizeRotatingFileHandler,
     JsonFormatter,
     build_file_handler,
     cleanup_old_logs,
     mask_text,
+    sanitize_text,
 )
 
 
@@ -65,14 +67,59 @@ def test_console_formatter_highlights_level_status_and_slow_request() -> None:
     assert "1500.0ms" in plain
 
 
-def test_build_file_handler_wires_rotation_and_retention(tmp_path: Path) -> None:
-    handler = build_file_handler(tmp_path / "waynote.log", retention_days=3)
+def test_build_file_handler_wires_rotation_retention_and_size_cap(tmp_path: Path) -> None:
+    handler = build_file_handler(tmp_path / "waynote.log", retention_days=3, max_bytes=1024)
     try:
+        assert isinstance(handler, DailySizeRotatingFileHandler)
         assert str(handler.when).upper() == "MIDNIGHT"
         assert handler.backupCount == 3
         assert handler.encoding == "utf-8"
+        assert handler.max_bytes == 1024
         assert isinstance(handler.formatter, JsonFormatter)
     finally:
+        handler.close()
+
+
+def test_sanitize_text_strips_control_chars_keeps_text() -> None:
+    raw = "正常中文🙂\tTab\n换行\x1b[2J清屏\x00NUL\r回车"
+    cleaned = sanitize_text(raw)
+
+    assert "\x1b" not in cleaned
+    assert "\x00" not in cleaned
+    assert "\r" not in cleaned
+    assert "正常中文🙂" in cleaned
+    assert "\t" in cleaned and "\n" in cleaned
+
+
+def test_console_formatter_strips_injected_ansi_but_keeps_own_highlight() -> None:
+    """回归：自身高亮的 ANSI 不能被清洗掉，注入的转义序列必须被清洗。"""
+    record = _record(logging.ERROR, "恶意\x1b[2J注入")
+    output = ConsoleFormatter(colors=True, slow_ms=800).format(record)
+
+    assert "注入" in output
+    assert "\x1b[2J" not in output  # 注入的清屏序列被剥离
+    assert "\x1b[31m" in output  # 自身级别红色高亮仍在
+
+
+def test_size_rotation_creates_backups_and_prunes(tmp_path: Path) -> None:
+    handler = build_file_handler(tmp_path / "waynote.log", retention_days=2, max_bytes=600)
+    logger = logging.getLogger("waynote.rotation.test")
+    logger.propagate = False
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    try:
+        for index in range(40):
+            logger.info("日志行 %s %s", index, "x" * 80)
+
+        backups = sorted(tmp_path.glob("waynote.log.*"))
+        current = tmp_path / "waynote.log"
+        assert current.exists()
+        assert 1 <= len(backups) <= 2  # 超过 backupCount 的最旧备份被清理
+        limit = 600 + 260  # 上限 + 单条记录余量
+        assert current.stat().st_size <= limit
+        assert all(item.stat().st_size <= limit for item in backups)
+    finally:
+        logger.removeHandler(handler)
         handler.close()
 
 

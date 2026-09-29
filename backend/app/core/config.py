@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     log_retention_days: int = 14
     log_color: Literal["auto", "always", "never"] = "auto"
     log_slow_request_ms: int = 800
+    log_max_bytes: int = 10 * 1024 * 1024  # 单文件上限（0=不限制），与每日轮转取先到者
+
+    # 信任边界与安全（见 .deepcode/ADR-20260929-Waynote-trust-boundary-hardening.md）
+    # 仅当直连对端在此白名单内才采信 X-Forwarded-For；严禁填公网网段
+    trusted_proxy_ips: str = "127.0.0.1,::1"
+    allow_registration: bool = True
 
 
 settings = Settings()

@@ -36,6 +36,8 @@ _SECRET_RE = re.compile(
     r"([\"']?\s*[:=]\s*[\"']?)([^\s\"',;}]+)"
 )
 _EMAIL_RE = re.compile(r"([\w.+-]{1,2})[\w.+-]*(@[\w-]+(?:\.[\w-]+)+)")
+# C0/C1 控制字符（保留 \t=\x09 与 \n=\x0a），防 ANSI 转义注入终端显示
+_CONTROL_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
 
 
 def mask_text(text: str) -> str:
@@ -43,6 +45,11 @@ def mask_text(text: str) -> str:
     text = _SECRET_RE.sub(r"\1\2***", text)
     text = _EMAIL_RE.sub(r"\1***\2", text)
     return text
+
+
+def sanitize_text(text: str) -> str:
+    """移除控制字符（ANSI 转义、退格、NUL 等），保留换行与制表符。"""
+    return _CONTROL_RE.sub("", text)
 
 
 # ===== ANSI 高亮 =====
@@ -117,7 +124,8 @@ class ConsoleFormatter(logging.Formatter):
         rid = getattr(record, "request_id", None) or request_id_var.get()
         rid_text = self._c("\033[36m", f"[{rid}]") if rid and rid != "-" else "[-]"
 
-        message = record.getMessage()
+        # 先清洗原始内容，再加高亮装饰（避免把自身 ANSI 也剥掉）
+        message = sanitize_text(record.getMessage())
         status = getattr(record, "status", None)
         if status is not None:
             message = message.replace(str(status), self._c(_status_color(int(status)), str(status)), 1)
@@ -143,7 +151,7 @@ class ConsoleFormatter(logging.Formatter):
                 "path",
             }:
                 continue
-            extras.append(f"{key}={value}")
+            extras.append(f"{key}={sanitize_text(str(value))}")
         user_id = getattr(record, "user_id", None) or user_id_var.get()
         if user_id is not None:
             extras.append(f"user={user_id}")
@@ -151,7 +159,7 @@ class ConsoleFormatter(logging.Formatter):
 
         line = f"{ts} {level_text} {logger_name} {rid_text} {message}{suffix}"
         if record.exc_info:
-            line += "\n" + self._c("\033[31m", self.formatException(record.exc_info))
+            line += "\n" + self._c("\033[31m", sanitize_text(self.formatException(record.exc_info)))
         return mask_text(line)
 
 
@@ -163,27 +171,103 @@ class JsonFormatter(logging.Formatter):
             "ts": datetime.fromtimestamp(record.created).astimezone().isoformat(timespec="milliseconds"),
             "level": record.levelname,
             "logger": record.name,
-            "msg": record.getMessage(),
+            "msg": sanitize_text(record.getMessage()),
             "request_id": getattr(record, "request_id", None) or request_id_var.get(),
             "user_id": getattr(record, "user_id", None) or user_id_var.get(),
         }
         for key, value in record.__dict__.items():
             if key in _STANDARD_ATTRS or key.startswith("_") or key in payload:
                 continue
-            payload[key] = value
+            payload[key] = sanitize_text(value) if isinstance(value, str) else value
         if record.exc_info:
-            payload["exc"] = self.formatException(record.exc_info)
+            payload["exc"] = sanitize_text(self.formatException(record.exc_info))
         return mask_text(json.dumps(payload, ensure_ascii=False, default=str))
 
 
 # ===== Handler 工厂（测试与生产共用同一构造逻辑） =====
-def build_file_handler(log_path: Path, retention_days: int) -> logging.handlers.TimedRotatingFileHandler:
-    handler = logging.handlers.TimedRotatingFileHandler(
-        log_path,
-        when="midnight",
-        backupCount=retention_days,
-        encoding="utf-8",
-        delay=True,
+class DailySizeRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
+    """每日轮转 + 单文件大小上限（先到先转）；同日多次轮转命名唯一，按 mtime 清理最旧备份。
+
+    取舍：不处理夏令时（中国无 DST）；当日超限时会产生多个文件（命名带时间戳）。
+    """
+
+    def __init__(
+        self,
+        filename: str,
+        *,
+        max_bytes: int = 0,
+        backup_count: int = 14,
+    ) -> None:
+        super().__init__(
+            filename,
+            when="midnight",
+            backupCount=backup_count,
+            encoding="utf-8",
+            delay=True,
+        )
+        self.max_bytes = max_bytes
+
+    def shouldRollover(self, record: logging.LogRecord) -> int:
+        if super().shouldRollover(record):
+            return 1
+        if self.max_bytes <= 0:
+            return 0
+        if self.stream is None:
+            if not os.path.exists(self.baseFilename):
+                return 0
+            self.stream = self._open()
+        message = f"{self.format(record)}\n".encode(self.encoding or "utf-8", errors="replace")
+        self.stream.seek(0, os.SEEK_END)
+        return 1 if self.stream.tell() + len(message) > self.max_bytes else 0
+
+    def doRollover(self) -> None:
+        if self.stream:
+            self.stream.close()
+            self.stream = None
+
+        base = self.baseFilename
+        if os.path.exists(base):
+            stamp = time.strftime("%Y-%m-%d_%H%M%S")
+            target = f"{base}.{stamp}"
+            index = 1
+            while os.path.exists(target):
+                target = f"{base}.{stamp}.{index}"
+                index += 1
+            os.replace(base, target)
+
+        if not self.delay:
+            self.stream = self._open()
+
+        # 重新计算下一次时间轮转点（沿用父类语义）
+        current_time = int(time.time())
+        new_rollover_at = self.computeRollover(current_time)
+        while new_rollover_at <= current_time:
+            new_rollover_at += self.interval
+        self.rolloverAt = new_rollover_at
+
+        self._prune_backups()
+
+    def _prune_backups(self) -> None:
+        """按修改时间保留最近 backupCount 份（兼容每日命名与超限命名两种形态）。"""
+        if self.backupCount <= 0:
+            return
+        path = Path(self.baseFilename)
+        backups = sorted(
+            (item for item in path.parent.glob(f"{path.name}.*") if item.is_file()),
+            key=lambda item: item.stat().st_mtime,
+        )
+        for old in backups[: max(0, len(backups) - self.backupCount)]:
+            try:
+                old.unlink()
+            except OSError:
+                continue
+
+
+def build_file_handler(
+    log_path: Path, retention_days: int, max_bytes: int = 0
+) -> DailySizeRotatingFileHandler:
+    handler = DailySizeRotatingFileHandler(
+        str(log_path), max_bytes=max_bytes, backup_count=retention_days
     )
     handler.setFormatter(JsonFormatter())
     return handler
@@ -234,7 +318,13 @@ def setup_logging(settings: Settings) -> None:
 
     if settings.log_to_file:
         settings.log_dir.mkdir(parents=True, exist_ok=True)
-        root.addHandler(build_file_handler(settings.log_dir / "waynote.log", settings.log_retention_days))
+        root.addHandler(
+            build_file_handler(
+                settings.log_dir / "waynote.log",
+                settings.log_retention_days,
+                settings.log_max_bytes,
+            )
+        )
         removed = cleanup_old_logs(settings.log_dir, settings.log_retention_days)
         if removed:
             root.info("已清理 %s 个过期日志文件", removed, extra={"event": "logs.cleanup"})
