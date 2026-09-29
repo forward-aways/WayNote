@@ -14,6 +14,8 @@ export interface DerivedTheme {
   deep: string
   weak: string
   onJade: string
+  /** 宝石表面渐变：白 → 淡绿 → 阳绿的多段平滑过渡（白字墨色分支下不能出现近白端） */
+  surface: string
 }
 
 interface Rgb {
@@ -132,12 +134,18 @@ export function deriveTheme(baseHex: string): DerivedTheme {
     deep: toHex(deep),
     weak: toHex(weak),
     onJade: toHex(ink),
+    // 深墨字分支（浅宝石面）：糯白 → 亮绿 → 阳绿的连续过渡
+    // 白字分支（深宝石面）：保持亮端→深端两段，绝不能出现近白端，否则白字不可读
+    surface: useWhiteInk
+      ? `linear-gradient(135deg, ${toHex(bright)}, ${toHex(jade)})`
+      : `linear-gradient(150deg, ${toHex(mix(bright, WHITE, 0.5))} 0%, ${toHex(bright)} 42%, ${toHex(jade)} 100%)`,
   }
 }
 
 const CSS_VARS: Array<[keyof DerivedTheme, string]> = [
   ['jade', '--wy-jade'],
   ['bright', '--wy-jade-bright'],
+  ['surface', '--wy-jade-surface'],
   ['deep', '--wy-primary'],
   ['deep', '--wy-primary-strong'],
   ['weak', '--wy-primary-weak'],

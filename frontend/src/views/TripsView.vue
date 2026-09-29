@@ -9,6 +9,7 @@ import TripCard from '@/components/TripCard.vue'
 import { createTrip, deleteTrip, listTrips, updateTrip } from '@/api/trips'
 import type { TripListItem } from '@/api/trips'
 import { tripPhase } from '@/utils/trip'
+import { rememberTripHint } from '@/utils/tripHint'
 import { apiErrorMessage } from '@/utils/error'
 
 type FilterKey = 'all' | 'upcoming' | 'ongoing' | 'finished'
@@ -93,6 +94,12 @@ function openEdit(trip: TripListItem) {
     description: trip.description ?? '',
   }
   sheetVisible.value = true
+}
+
+/** 点卡片进详情：先把列表数据接力过去（详情页首帧即可渲染，消除白闪） */
+function openDetail(trip: TripListItem) {
+  rememberTripHint(trip)
+  router.push(`/trips/${trip.id}`)
 }
 
 async function submit() {
@@ -215,7 +222,7 @@ onMounted(loadTrips)
           :key="trip.id"
           :trip="trip"
           :style="{ animationDelay: `${index * 40}ms` }"
-          @open="router.push(`/trips/${trip.id}`)"
+          @open="openDetail(trip)"
           @edit="openEdit(trip)"
           @remove="onDelete(trip)"
         />
@@ -324,10 +331,10 @@ onMounted(loadTrips)
 .chip.active {
   border-color: transparent;
   background: var(--wy-jade-surface);
+  /* 必写：带边框的元素若只铺 padding-box，边框区会平铺出深绿切片（假边框） */
+  background-origin: border-box;
   color: var(--wy-on-jade);
-  box-shadow:
-    var(--wy-gem-highlight),
-    0 4px 12px rgba(4, 120, 87, 0.28);
+  box-shadow: var(--wy-gem-glow-sm);
 }
 .chip-count {
   font-size: var(--wy-text-xs);
@@ -431,11 +438,11 @@ onMounted(loadTrips)
     border-radius: 50%;
     /* 透明淡绿光玻璃 FAB（与激活胶囊同款） */
     background: color-mix(in srgb, var(--wy-accent-base) 20%, rgba(255, 255, 255, 0.34));
-    border: 1px solid color-mix(in srgb, var(--wy-accent-base) 34%, rgba(255, 255, 255, 0.5));
+    border: 1px solid rgba(255, 255, 255, 0.55);
     color: var(--wy-ink-1);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.55),
-      0 10px 24px color-mix(in srgb, var(--wy-accent-base) 32%, transparent);
+      0 10px 24px rgba(6, 60, 46, 0.16);
     -webkit-backdrop-filter: blur(12px) saturate(160%);
     backdrop-filter: blur(12px) saturate(160%);
     cursor: pointer;

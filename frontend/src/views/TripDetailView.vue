@@ -12,6 +12,7 @@ import { createDay, deleteDay, listDays, updateDay } from '@/api/days'
 import type { TripDay } from '@/api/days'
 import { createPlace, deletePlace, listPlaces, updatePlace } from '@/api/places'
 import type { Place } from '@/api/places'
+import { recallTripHint } from '@/utils/tripHint'
 import {
   PHASE_LABEL,
   PHASE_TONE,
@@ -33,10 +34,13 @@ const route = useRoute()
 const router = useRouter()
 const tripId = computed(() => Number(route.params.id))
 
-const trip = ref<Trip | null>(null)
+/** 列表页接力过来的数据（含计数）：首帧即渲染，避免进入详情时的白闪 */
+const hint = recallTripHint(tripId.value)
+const trip = ref<Trip | null>(hint)
 const days = ref<TripDay[]>([])
 const places = ref<Place[]>([])
-const loading = ref(true)
+/** 详情数据是否已从接口刷新过（未刷新前用接力数据兜底展示，避免计数闪跳） */
+const fetched = ref(false)
 const generating = ref(false)
 
 const phase = computed(() => (trip.value ? tripPhase(trip.value) : 'undated'))
@@ -46,13 +50,25 @@ const dateText = computed(() =>
 const countdown = computed(() => (trip.value ? countdownText(trip.value) : ''))
 const spanDays = computed(() => (trip.value ? tripDayCount(trip.value) : null))
 const unassigned = computed(() => places.value.filter((place) => place.day_id === null))
-const statsText = computed(() => `已安排 ${days.value.length} 天 · ${places.value.length} 个地点`)
+const statsText = computed(() => {
+  const dayCount = fetched.value ? days.value.length : (hint?.day_count ?? days.value.length)
+  const placeCount = fetched.value ? places.value.length : (hint?.place_count ?? places.value.length)
+  return `已安排 ${dayCount} 天 · ${placeCount} 个地点`
+})
 
 const placesOfDay = (dayId: number) => places.value.filter((place) => place.day_id === dayId)
 
-const canGenerateDays = computed(
-  () => days.value.length === 0 && !!toDayString(trip.value?.start_date) && !!toDayString(trip.value?.end_date),
+/** 接力数据已知有日程时，不闪出"生成日程"引导（避免提示出现又立刻消失） */
+const hasKnownDays = computed(() =>
+  fetched.value ? days.value.length > 0 : (hint?.day_count ?? 0) > 0,
 )
+
+const canGenerateDays = computed(
+  () => !hasKnownDays.value && !!toDayString(trip.value?.start_date) && !!toDayString(trip.value?.end_date),
+)
+
+/** 接力数据已知有日程时，加载期间先摆骨架屏（避免时间轴区域"空一下再弹出"） */
+const showDaySkeleton = computed(() => !fetched.value && (hint?.day_count ?? 0) > 0)
 
 /* ===== 行程表单 ===== */
 const tripSheetVisible = ref(false)
@@ -128,7 +144,6 @@ async function removeTrip() {
 
 /* ===== 数据加载 ===== */
 async function loadAll() {
-  loading.value = true
   try {
     const [t, d, p] = await Promise.all([
       getTrip(tripId.value),
@@ -138,6 +153,7 @@ async function loadAll() {
     trip.value = t
     days.value = d
     places.value = p
+    fetched.value = true
   } catch (error: unknown) {
     if (apiErrorStatus(error) === 404) {
       ElMessage.error('行程不存在或无权访问')
@@ -145,8 +161,6 @@ async function loadAll() {
       return
     }
     ElMessage.error('加载失败')
-  } finally {
-    loading.value = false
   }
 }
 
@@ -417,8 +431,15 @@ onMounted(loadAll)
 </script>
 
 <template>
-  <div class="page" v-loading="loading">
-    <main v-if="trip" class="wy-container content wy-bottom-safe">
+  <div class="page">
+    <!-- 冷启动（直接访问链接/刷新）的骨架屏：不再用白色加载遮罩，避免白闪割裂感 -->
+    <div v-if="!trip" class="wy-container content wy-bottom-safe" aria-hidden="true">
+      <div class="wy-skeleton sk-hero" />
+      <div class="wy-skeleton sk-day" />
+      <div class="wy-skeleton sk-day" />
+    </div>
+
+    <main v-else class="wy-container content wy-bottom-safe">
       <!-- 行程头部 -->
       <section class="hero wy-card">
         <div class="hero-top">
@@ -468,6 +489,12 @@ onMounted(loadAll)
       </section>
 
       <!-- 时间轴 -->
+      <!-- 加载期间摆骨架（接力数据已知有日程）：避免时间轴区域"空一下再弹出" -->
+      <div v-if="showDaySkeleton" class="sk-list" aria-hidden="true">
+        <div class="wy-skeleton sk-day" />
+        <div class="wy-skeleton sk-day" />
+      </div>
+
       <div v-if="days.length" class="timeline">
         <section v-for="day in days" :key="day.id" class="day-block">
           <div class="day-node" aria-hidden="true" />
@@ -779,6 +806,24 @@ onMounted(loadAll)
   padding-bottom: calc(var(--wy-s12) + 64px);
 }
 
+/* 骨架屏形状（底料见 base.css 的 .wy-skeleton）：冷启动与加载期间占位，不用白色遮罩 */
+.sk-hero {
+  height: 172px;
+  margin-bottom: var(--wy-s6);
+}
+.sk-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wy-s5);
+}
+.sk-day {
+  height: 112px;
+  margin-bottom: var(--wy-s5);
+}
+.sk-list .sk-day {
+  margin-bottom: 0;
+}
+
 /* 头部 */
 .hero {
   position: relative;
@@ -912,13 +957,13 @@ onMounted(loadAll)
   border-radius: var(--wy-r-full);
   /* 透明淡绿光玻璃（与侧栏/底栏激活胶囊同款） */
   background: color-mix(in srgb, var(--wy-accent-base) 18%, rgba(255, 255, 255, 0.32));
-  border: 1px solid color-mix(in srgb, var(--wy-accent-base) 32%, rgba(255, 255, 255, 0.5));
+  border: 1px solid rgba(255, 255, 255, 0.5);
   color: var(--wy-ink-1);
   font-size: var(--wy-text-md);
   font-weight: 700;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 6px 16px color-mix(in srgb, var(--wy-accent-base) 26%, transparent);
+    0 6px 16px rgba(6, 60, 46, 0.12);
 }
 .day-date {
   margin: 0;
@@ -1131,11 +1176,11 @@ onMounted(loadAll)
   border-radius: 50%;
   /* 透明淡绿光玻璃 FAB（与激活胶囊同款，图标用最深墨色） */
   background: color-mix(in srgb, var(--wy-accent-base) 20%, rgba(255, 255, 255, 0.34));
-  border: 1px solid color-mix(in srgb, var(--wy-accent-base) 34%, rgba(255, 255, 255, 0.5));
+  border: 1px solid rgba(255, 255, 255, 0.55);
   color: var(--wy-ink-1);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    0 10px 24px color-mix(in srgb, var(--wy-accent-base) 32%, transparent);
+    0 10px 24px rgba(6, 60, 46, 0.16);
   -webkit-backdrop-filter: blur(12px) saturate(160%);
   backdrop-filter: blur(12px) saturate(160%);
   cursor: pointer;

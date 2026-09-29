@@ -21,7 +21,6 @@ const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 const MAX_DOTS = 3
 
 const router = useRouter()
-const loading = ref(true)
 const trips = ref<TripListItem[]>([])
 const entries = ref<DayEntry[]>([])
 const cursor = ref(startOfMonth(new Date()))
@@ -83,7 +82,6 @@ const selectedLabel = computed(() =>
 )
 
 async function load() {
-  loading.value = true
   try {
     trips.value = await listTrips()
     const all = await Promise.all(
@@ -92,8 +90,6 @@ async function load() {
     entries.value = all.flat()
   } catch {
     ElMessage.error('加载日历失败')
-  } finally {
-    loading.value = false
   }
 }
 
@@ -137,7 +133,7 @@ onMounted(load)
       </div>
     </header>
 
-    <section class="grid-card glass-panel" v-loading="loading">
+    <section class="grid-card glass-panel">
       <div class="weekdays">
         <span v-for="label in WEEKDAYS" :key="label">{{ label }}</span>
       </div>

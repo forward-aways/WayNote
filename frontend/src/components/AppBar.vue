@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AppIcon from '@/components/AppIcon.vue'
+import BrandMark from '@/components/BrandMark.vue'
 import { useAuthStore } from '@/stores/auth'
 
 withDefaults(defineProps<{ back?: boolean; menu?: boolean; showBrand?: boolean }>(), {
@@ -53,7 +54,7 @@ function onCommand(command: string) {
 
 <template>
   <header class="appbar">
-    <span class="appbar-veil liquid-glass" :class="{ visible: scrolled }" aria-hidden="true" />
+    <span class="appbar-veil" :class="{ visible: scrolled }" aria-hidden="true" />
     <div class="bar-inner wy-container">
       <button
         v-if="back"
@@ -75,7 +76,7 @@ function onCommand(command: string) {
       </button>
 
       <router-link v-if="showBrand" class="brand" to="/trips">
-        <span class="brand-seal" aria-hidden="true">途</span>
+        <BrandMark :size="28" />
         <span class="brand-name wy-display">途笺</span>
         <span class="brand-en">Waynote</span>
       </router-link>
@@ -106,12 +107,20 @@ function onCommand(command: string) {
   top: 0;
   z-index: 30;
 }
-/* 透明态与磨砂态之间用"蒙层渐变"过渡（避免渐变背景硬切） */
+/* 滚动态：几乎完全透明的液态玻璃（只留模糊/饱和 + 极低染色）
+   ① 无边框、无描边、无投影 —— 消除"白色边框"
+   ② 底缘用蒙版渐隐 —— 消除模糊层边缘的"横切边界"，摸不到顶栏从哪开始 */
 .appbar-veil {
   position: absolute;
   inset: 0;
   opacity: 0;
   pointer-events: none;
+  background: var(--wy-glass-veil-bg);
+  -webkit-backdrop-filter: blur(var(--wy-glass-veil-blur)) saturate(var(--wy-glass-chrome-saturate));
+  backdrop-filter: blur(var(--wy-glass-veil-blur)) saturate(var(--wy-glass-chrome-saturate));
+  /* 蒙版只取 alpha（black = 不透明 = 蒙版有效），非视觉色值 */
+  -webkit-mask-image: linear-gradient(180deg, black 62%, transparent 100%);
+  mask-image: linear-gradient(180deg, black 62%, transparent 100%);
   transition: opacity 220ms var(--wy-ease);
 }
 .appbar-veil.visible {
@@ -133,22 +142,6 @@ function onCommand(command: string) {
 }
 .brand:hover {
   text-decoration: none;
-}
-.brand-seal {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 9px;
-  background: var(--wy-jade-surface);
-  color: var(--wy-on-jade);
-  font-size: var(--wy-text-base);
-  font-weight: 700;
-  line-height: 1;
-  box-shadow:
-    var(--wy-gem-highlight),
-    0 4px 12px rgba(4, 120, 87, 0.3);
 }
 .brand-name {
   font-size: var(--wy-text-lg);

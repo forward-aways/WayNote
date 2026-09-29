@@ -46,12 +46,10 @@ withDefaults(
   --tone: var(--wy-ink-3);
   --tone-weak: rgba(255, 255, 255, 0.6);
 }
-/* 宝石胶囊：亮主题色表面 + 深色字 */
+/* 宝石胶囊：亮主题色表面 + 深色字（不叠内沿高光线，避免读成"边框"） */
 .tone-gem {
   background: var(--wy-jade-surface);
   color: var(--wy-on-jade);
-  box-shadow:
-    var(--wy-gem-highlight),
-    0 4px 12px color-mix(in srgb, var(--wy-accent-base) 30%, transparent);
+  box-shadow: var(--wy-gem-glow-sm);
 }
 </style>

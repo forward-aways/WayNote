@@ -113,13 +113,15 @@ onBeforeUnmount(() => {
   bottom: 6px;
   left: 0;
   border-radius: var(--wy-r-full);
-  /* 透明淡绿光玻璃（与侧栏激活态同款，保持两端一致） */
-  background: color-mix(in srgb, var(--wy-accent-base) 18%, rgba(255, 255, 255, 0.3));
-  border: 1px solid color-mix(in srgb, var(--wy-accent-base) 32%, rgba(255, 255, 255, 0.5));
+  /* 淡雅翡翠玻璃（与侧栏激活态同款，保持两端一致；不用发光） */
+  background:
+    var(--wy-sheen-soft),
+    color-mix(in srgb, var(--wy-accent-base) 14%, rgba(255, 255, 255, 0.74));
+  border: 1px solid rgba(255, 255, 255, 0.5);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 0 0 1px color-mix(in srgb, var(--wy-accent-base) 10%, transparent),
-    0 6px 16px color-mix(in srgb, var(--wy-accent-base) 28%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--wy-accent-base) 14%, transparent),
+    0 6px 16px rgba(6, 60, 46, 0.12);
 }
 /* 首帧直接落位，之后启用弹簧滑动（非线性：惯性 + 轻微回弹落定） */
 .indicator.ready {
@@ -151,10 +153,12 @@ onBeforeUnmount(() => {
 .nav-item:active {
   transform: scale(0.96);
 }
-/* 降级保障：指示器量不到位置时，激活项自带上宝石背景（激活态永不丢失） */
+/* 降级保障：指示器量不到位置时，激活项自带淡雅翡翠底（激活态永不丢失） */
 .bottom-nav:not(.measured) .nav-item.active {
-  background: var(--wy-jade-surface);
-  box-shadow: var(--wy-gem-highlight);
+  background:
+    var(--wy-sheen-soft),
+    color-mix(in srgb, var(--wy-accent-base) 14%, rgba(255, 255, 255, 0.74));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 .nav-label {
   font-size: 11px;

@@ -80,19 +80,23 @@
   letter-spacing: 0.2px;
 }
 
-/* 主按钮 = 宝石表面 + 宝石面墨色（亮翡翠上的文字由派生算法保证 ≥4.5:1） */
+/* 主按钮 = 宝石表面 + 宝石面墨色（亮翡翠上的文字由派生算法保证 ≥4.5:1）
+   两条纪律：
+   ① background-origin: border-box —— 否则渐变只铺 padding-box 并向外平铺，
+      上/左边框区会显示渐变另一端（阳绿）的切片，形成一圈"深绿假边框"；
+   ② 不叠内沿高光线/彩色光晕 —— 渐变本身已足够表达按钮位置，任何贴边线条都会被读成"边框" */
 .el-button--primary {
   background: var(--wy-jade-surface);
+  background-origin: border-box;
   border-color: transparent;
   color: var(--wy-on-jade);
-  box-shadow:
-    var(--wy-gem-highlight),
-    var(--wy-gem-glow);
+  box-shadow: var(--wy-gem-glow);
 }
 
 .el-button--primary:hover,
 .el-button--primary:focus-visible {
   background: var(--wy-jade-surface);
+  background-origin: border-box;
   border-color: transparent;
   color: var(--wy-on-jade);
   filter: brightness(1.06);
@@ -196,4 +200,36 @@
     var(--wy-line) 37%,
     var(--wy-bg-soft) 63%
   );
+}
+
+/* ===== 动效约定（用户指定） =====
+   导航滑块一类"位移动效"走非线性（弹簧/减速，见 --wy-spring）；
+   卡片展开收回（弹窗/抽屉）与二级菜单弹出（下拉/选择器浮层）这类"容器动效"走匀速线性。 */
+:root {
+  --el-transition-md-fade: transform var(--el-transition-duration) linear,
+    opacity var(--el-transition-duration) linear;
+}
+
+/* 弹窗：蒙层 + 面板（dialog-fade-in/out 关键帧） */
+.dialog-fade-enter-active,
+.dialog-fade-leave-active,
+.dialog-fade-enter-active .el-overlay-dialog,
+.dialog-fade-leave-active .el-overlay-dialog {
+  animation-timing-function: linear;
+}
+
+/* 抽屉（移动端底部抽屉、侧边抽屉）：蒙层与面板位移 */
+.el-drawer,
+.el-drawer-fade-enter-active,
+.el-drawer-fade-leave-active {
+  transition-timing-function: linear;
+}
+
+/* 消息框 */
+.fade-in-linear-enter-active .el-overlay-message-box,
+.fade-in-linear-leave-active .el-overlay-message-box,
+.el-message-fade-enter-active,
+.el-message-fade-leave-active {
+  animation-timing-function: linear;
+  transition-timing-function: linear;
 }

@@ -73,50 +73,55 @@ onMounted(load)
       </div>
     </section>
 
-    <div v-loading="loading">
-      <EmptyState
-        v-if="!loading && groups.length === 0"
-        title="还没有带坐标的地点"
-        description="在行程里给地点补上经纬度，就会出现在这里"
-      />
-
-      <template v-else>
-        <p class="count">共 {{ totalGeo }} 个坐标地点</p>
-        <section v-for="group in groups" :key="group.trip.id" class="group glass-panel">
-          <header class="group-head">
-            <span
-              class="group-stripe"
-              :style="{ background: destinationPalette(group.trip.destination || group.trip.title).gradient }"
-            />
-            <span class="group-title">{{ group.trip.title }}</span>
-            <TagChip v-if="group.trip.destination" :text="group.trip.destination" tone="gem" />
-          </header>
-
-          <article v-for="place in group.places" :key="place.id" class="place">
-            <div class="place-main">
-              <p class="place-name">
-                {{ place.name }}
-                <TagChip v-if="place.category" :text="place.category" tone="primary" />
-              </p>
-              <p v-if="place.address" class="place-sub">
-                <AppIcon name="pin" :size="13" /> {{ place.address }}
-              </p>
-              <p v-if="timeText(place)" class="place-sub">
-                <AppIcon name="clock" :size="13" /> {{ timeText(place) }}
-              </p>
-            </div>
-            <div class="place-actions">
-              <button class="text-btn" type="button" @click="openMap(place)">
-                <AppIcon name="navigation" :size="14" /> 地图
-              </button>
-              <button class="text-btn" type="button" @click="copyCoordinate(place)">
-                <AppIcon name="copy" :size="14" /> 坐标
-              </button>
-            </div>
-          </article>
-        </section>
-      </template>
+    <!-- 加载占位：不用白色加载遮罩（白闪来源），摆翡翠骨架 -->
+    <div v-if="loading" class="sk-list" aria-hidden="true">
+      <div class="wy-skeleton sk-group" />
+      <div class="wy-skeleton sk-group" />
+      <div class="wy-skeleton sk-group" />
     </div>
+
+    <EmptyState
+      v-else-if="groups.length === 0"
+      title="还没有带坐标的地点"
+      description="在行程里给地点补上经纬度，就会出现在这里"
+    />
+
+    <template v-else>
+      <p class="count">共 {{ totalGeo }} 个坐标地点</p>
+      <section v-for="group in groups" :key="group.trip.id" class="group glass-panel">
+        <header class="group-head">
+          <span
+            class="group-stripe"
+            :style="{ background: destinationPalette(group.trip.destination || group.trip.title).gradient }"
+          />
+          <span class="group-title">{{ group.trip.title }}</span>
+          <TagChip v-if="group.trip.destination" :text="group.trip.destination" tone="gem" />
+        </header>
+
+        <article v-for="place in group.places" :key="place.id" class="place">
+          <div class="place-main">
+            <p class="place-name">
+              {{ place.name }}
+              <TagChip v-if="place.category" :text="place.category" tone="primary" />
+            </p>
+            <p v-if="place.address" class="place-sub">
+              <AppIcon name="pin" :size="13" /> {{ place.address }}
+            </p>
+            <p v-if="timeText(place)" class="place-sub">
+              <AppIcon name="clock" :size="13" /> {{ timeText(place) }}
+            </p>
+          </div>
+          <div class="place-actions">
+            <button class="text-btn" type="button" @click="openMap(place)">
+              <AppIcon name="navigation" :size="14" /> 地图
+            </button>
+            <button class="text-btn" type="button" @click="copyCoordinate(place)">
+              <AppIcon name="copy" :size="14" /> 坐标
+            </button>
+          </div>
+        </article>
+      </section>
+    </template>
   </main>
 </template>
 
@@ -171,6 +176,14 @@ onMounted(load)
   margin: 0 0 var(--wy-s3);
   color: var(--wy-ink-3);
   font-size: var(--wy-text-sm);
+}
+.sk-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wy-s4);
+}
+.sk-group {
+  height: 138px;
 }
 .group {
   padding: var(--wy-s4);

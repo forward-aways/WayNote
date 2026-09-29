@@ -109,6 +109,28 @@ button {
     var(--wy-shadow-2);
 }
 
+/* 骨架屏（加载占位）：淡雅翡翠玻璃底 + 呼吸。
+   纪律：加载态一律用骨架，不用白色加载遮罩（element-plus 默认遮罩是白 90%，会白闪） */
+.wy-skeleton {
+  border-radius: var(--wy-r-md);
+  background:
+    var(--wy-sheen-soft),
+    color-mix(in srgb, var(--wy-accent-base) 5%, rgba(255, 255, 255, 0.72));
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  animation: wy-skeleton-breathe 1.4s var(--wy-ease) infinite;
+}
+
+@keyframes wy-skeleton-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
 /* 兼容旧命名：卡片即翡翠玻璃面板 */
 .wy-card {
   background:

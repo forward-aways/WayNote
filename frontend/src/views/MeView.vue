@@ -72,19 +72,26 @@ onMounted(() => {
       </div>
     </section>
 
-    <section class="stats glass-panel" v-loading="loadingStats">
-      <div class="stat">
-        <span class="stat-num wy-num">{{ stats.trips }}</span>
-        <span class="stat-label">段行程</span>
+    <section class="stats glass-panel">
+      <!-- 加载中：翡翠骨架占位（不用白色加载遮罩） -->
+      <div v-if="loadingStats" class="sk-stats" aria-hidden="true">
+        <div v-for="n in 3" :key="n" class="wy-skeleton sk-stat" />
       </div>
-      <div class="stat">
-        <span class="stat-num wy-num">{{ stats.days }}</span>
-        <span class="stat-label">天日程</span>
-      </div>
-      <div class="stat">
-        <span class="stat-num wy-num">{{ stats.places }}</span>
-        <span class="stat-label">个地点</span>
-      </div>
+
+      <template v-else>
+        <div class="stat">
+          <span class="stat-num wy-num">{{ stats.trips }}</span>
+          <span class="stat-label">段行程</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num wy-num">{{ stats.days }}</span>
+          <span class="stat-label">天日程</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num wy-num">{{ stats.places }}</span>
+          <span class="stat-label">个地点</span>
+        </div>
+      </template>
     </section>
 
     <section class="rows glass-panel">
@@ -200,6 +207,15 @@ onMounted(() => {
   grid-template-columns: repeat(3, 1fr);
   padding: var(--wy-s4);
   border-radius: var(--wy-r-md);
+}
+.sk-stats {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--wy-s4);
+}
+.sk-stat {
+  height: 52px;
 }
 .stat {
   display: flex;

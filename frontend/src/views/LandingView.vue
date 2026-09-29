@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /** 落地页：灵动起始动画（路径描边 + 落点）+ 特性玻璃卡 + CTA */
 import AppIcon from '@/components/AppIcon.vue'
+import BrandMark from '@/components/BrandMark.vue'
 
 const FEATURES = [
   { icon: 'compass', title: '行程规划', desc: '按天安排地点，时间与备注一目了然' },
@@ -13,7 +14,7 @@ const FEATURES = [
   <div class="landing">
     <header class="landing-top wy-container">
       <span class="brand">
-        <span class="tile" aria-hidden="true">途</span>
+        <BrandMark :size="30" />
         <span class="brand-name wy-display">途笺</span>
         <span class="brand-en">Waynote</span>
       </span>
@@ -72,20 +73,6 @@ const FEATURES = [
   display: inline-flex;
   align-items: center;
   gap: var(--wy-s2);
-}
-.tile {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  background: var(--wy-jade-surface);
-  color: var(--wy-on-jade);
-  font-weight: 700;
-  box-shadow:
-    var(--wy-gem-highlight),
-    var(--wy-gem-glow);
 }
 .brand-name {
   font-size: var(--wy-text-lg);

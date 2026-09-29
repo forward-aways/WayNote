@@ -1,5 +1,7 @@
 <script setup lang="ts">
 /** 登录/注册共用：居中玻璃面板（背景由全局 BackgroundStage 提供） */
+import BrandMark from '@/components/BrandMark.vue'
+
 defineProps<{ title: string; subtitle?: string }>()
 </script>
 
@@ -7,7 +9,7 @@ defineProps<{ title: string; subtitle?: string }>()
   <div class="auth-wrap">
     <section class="panel glass-panel-strong wy-rise">
       <p class="panel-brand">
-        <span class="brand-tile" aria-hidden="true">途</span>
+        <BrandMark :size="26" />
         途笺 Waynote
       </p>
       <h1 class="panel-title wy-display">{{ title }}</h1>
@@ -38,19 +40,6 @@ defineProps<{ title: string; subtitle?: string }>()
   color: var(--wy-ink-2);
   font-size: var(--wy-text-sm);
   letter-spacing: 1px;
-}
-.brand-tile {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 9px;
-  background: var(--wy-jade-surface);
-  color: var(--wy-on-jade);
-  font-size: var(--wy-text-sm);
-  font-weight: 700;
-  box-shadow: var(--wy-gem-highlight);
 }
 .panel-title {
   margin: var(--wy-s5) 0 var(--wy-s1);

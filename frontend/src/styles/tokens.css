@@ -11,7 +11,15 @@
   --wy-accent-base: #22c55e;
   --wy-jade: #41cd75; /* 宝石表面（透亮） */
   --wy-jade-bright: #76db9b; /* 高光端 */
-  --wy-jade-surface: linear-gradient(135deg, var(--wy-jade-bright), var(--wy-jade));
+  /* 宝石表面：浅糯白 → 亮绿 → 阳绿的连续平滑过渡。
+     注意：不能用纯白端点——纯白落在元素边缘时，白→绿在 sRGB 插值会经过一段黄绿，
+     圆角外缘看起来就像"一圈奇怪的描边"。起点用"50% 亮绿 + 白"（糯白偏绿），过渡自然无边界 */
+  --wy-jade-surface: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--wy-jade-bright) 50%, #fff) 0%,
+    var(--wy-jade-bright) 42%,
+    var(--wy-jade) 100%
+  );
   --wy-on-jade: #052a1b; /* 宝石面上的墨色（7.55:1） */
   --wy-primary: #157a3a; /* 深色：文字/边框/链接（白字 5.41:1） */
   --wy-primary-strong: #157a3a;
@@ -58,6 +66,11 @@
   --wy-glass-chrome-blur: 24px;
   --wy-glass-chrome-saturate: 180%;
 
+  /* 顶栏滚动蒙层：几乎完全透明的液态玻璃（只保留模糊/饱和 + 极低染色；
+     无边框无描边，底缘用蒙版渐隐，避免出现"横切边界"） */
+  --wy-glass-veil-bg: color-mix(in srgb, var(--wy-accent-base) 3%, rgba(255, 255, 255, 0.26));
+  --wy-glass-veil-blur: 20px;
+
   /* 液态玻璃：镜面高光渐变（左上亮 → 中段极淡 → 右下回光） */
   --wy-sheen: linear-gradient(
     135deg,
@@ -85,13 +98,22 @@
   --wy-shadow-1: 0 2px 10px rgba(6, 60, 46, 0.08);
   --wy-shadow-2: 0 12px 32px rgba(6, 60, 46, 0.14), 0 2px 8px rgba(6, 60, 46, 0.08);
   --wy-float-shadow: 0 16px 40px rgba(6, 60, 46, 0.2), 0 2px 8px rgba(6, 60, 46, 0.1);
-  --wy-gem-glow: 0 10px 26px color-mix(in srgb, var(--wy-accent-base) 42%, transparent);
+  /* 宝石投影：只保留中性柔影。
+     教训（用户上报）：绿色光晕压在渐变最浅的一端（按钮上沿/左侧）会读成"一圈绿色边框"，
+     渐变本身已经有足够的存在感，宝石件不再叠加任何彩色轮廓 */
+  --wy-gem-glow: 0 10px 24px rgba(6, 60, 46, 0.16);
+  --wy-gem-glow-sm: 0 4px 12px rgba(6, 60, 46, 0.14);
+  /* 宝石内沿光：只保留极轻的一层（白线会读成"上面有点白色"，翡翠的亮应由表面渐变承担） */
   --wy-gem-highlight:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
 
   /* 品牌渐变（= 宝石表面） */
   --wy-grad-brand: var(--wy-jade-surface);
+
+  /* 品牌标（与 favicon 同款图形）：固定品牌渐变，不随主题变化 */
+  --wy-brand-mark-from: #10b981;
+  --wy-brand-mark-to: #0ea5e9;
 
   /* 目的地渐变板：宝石家族 */
   --wy-grad-emerald: linear-gradient(135deg, #157a3a, #41cd75);
