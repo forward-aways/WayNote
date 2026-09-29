@@ -1,0 +1,23 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Environments and secrets（禁止提交真实配置，示例见 backend/.env.example）
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+/.vscode/
+
+# Test / lint caches
+.pytest_cache/
+.ruff_cache/
