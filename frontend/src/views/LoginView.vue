@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import AuthShell from '@/components/AuthShell.vue'
 import { useAuthStore } from '@/stores/auth'
 import { apiErrorMessage } from '@/utils/error'
 
 const auth = useAuthStore()
-const router = useRouter()
 
 const email = ref('')
 const password = ref('')
@@ -22,7 +20,9 @@ async function onSubmit() {
   loading.value = true
   try {
     await auth.doLogin(email.value, password.value)
-    router.push('/trips')
+    // 整页跳转：给浏览器密码管理器最强的“登录成功”信号，并彻底重置内存状态
+    // （见 .deepcode/ADR-20260929-Waynote-password-manager-friendly-login.md）
+    window.location.assign('/trips')
   } catch (error: unknown) {
     errorMsg.value = apiErrorMessage(error, '登录失败，请稍后重试')
   } finally {
@@ -41,7 +41,8 @@ async function onSubmit() {
           v-model="email"
           size="large"
           type="email"
-          autocomplete="email"
+          autocomplete="username"
+          name="username"
           placeholder="you@example.com"
         />
       </el-form-item>
@@ -52,8 +53,8 @@ async function onSubmit() {
           type="password"
           show-password
           autocomplete="current-password"
+          name="password"
           placeholder="请输入密码"
-          @keyup.enter="onSubmit"
         />
       </el-form-item>
 
@@ -63,8 +64,8 @@ async function onSubmit() {
         class="form-submit"
         type="primary"
         size="large"
+        native-type="submit"
         :loading="loading"
-        @click="onSubmit"
       >
         登 录
       </el-button>

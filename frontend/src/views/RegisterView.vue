@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import AuthShell from '@/components/AuthShell.vue'
 import { useAuthStore } from '@/stores/auth'
 import { apiErrorMessage } from '@/utils/error'
 
 const auth = useAuthStore()
-const router = useRouter()
 
 const email = ref('')
 const name = ref('')
@@ -27,7 +25,8 @@ async function onSubmit() {
   loading.value = true
   try {
     await auth.doRegister(email.value, password.value, name.value || undefined)
-    router.push('/trips')
+    // 整页跳转：给浏览器密码管理器最强的“注册/登录成功”信号（同 LoginView）
+    window.location.assign('/trips')
   } catch (error: unknown) {
     errorMsg.value = apiErrorMessage(error, '注册失败，请稍后重试')
   } finally {
@@ -47,11 +46,18 @@ async function onSubmit() {
           size="large"
           type="email"
           autocomplete="email"
+          name="email"
           placeholder="you@example.com"
         />
       </el-form-item>
       <el-form-item label="昵称（可选）">
-        <el-input v-model="name" size="large" placeholder="旅途中怎么称呼你" />
+        <el-input
+          v-model="name"
+          size="large"
+          autocomplete="nickname"
+          name="nickname"
+          placeholder="旅途中怎么称呼你"
+        />
       </el-form-item>
       <el-form-item label="密码">
         <el-input
@@ -60,8 +66,8 @@ async function onSubmit() {
           type="password"
           show-password
           autocomplete="new-password"
+          name="password"
           placeholder="至少 6 位"
-          @keyup.enter="onSubmit"
         />
       </el-form-item>
 
@@ -71,8 +77,8 @@ async function onSubmit() {
         class="form-submit"
         type="primary"
         size="large"
+        native-type="submit"
         :loading="loading"
-        @click="onSubmit"
       >
         注 册
       </el-button>
