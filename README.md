@@ -116,6 +116,20 @@ cd frontend && npm run build        # 生产构建
 - 协作模型：DeepSeek V4.1 Flash
 - 决策记录：见 [`.deepcode/`](./.deepcode)，ADR 由该工作流生成并持续更新
 
+## 日志与异常处理
+
+- **后端日志**：控制台为人话 + 高亮（级别色 / 状态码 2xx 绿·4xx 黄·5xx 红 / 慢请求黄红），文件为 JSON Lines，默认写入 `backend/logs/waynote.log`；**每日轮转、自动删除过期文件，默认保留 14 天**（`LOG_LEVEL` / `LOG_DIR` / `LOG_RETENTION_DAYS` / `LOG_COLOR` / `LOG_SLOW_REQUEST_MS` 见 `backend/.env.example`）。
+- **请求追踪**：每个响应携带 `X-Request-ID`；5xx 的前端提示附带编号后 8 位，可据此直接定位后端日志：
+
+  ```bash
+  # 按请求编号检索（示例）
+  jq 'select(.request_id == "abc123")' backend/logs/waynote.log
+  ```
+
+- **统一异常信封**：`{"detail": str, "request_id": str, "errors"?: [...]}`；422 不回显原始输入，500 不回显堆栈，数据库约束冲突转 409。
+- **脱敏**：密码 / token / authorization 等一律置 `***`，邮箱保留前两位（如 `de***@example.com`）。
+- **前端**：`src/api/http.ts` 拦截器是唯一错误出口（归一化 `ApiError`、分级留痕、401 处理）；`src/utils/logger.ts` 提供彩色分级日志（开发全量、生产仅 warn/error）；未捕获的 Vue / JS 异常节流提示并上报 `POST /api/v1/client-logs`（限流 10 次/分钟/IP + 指纹去重）。
+
 ## 部署（规划）
 
 腾讯云轻量应用服务器（Ubuntu Server 24.04 LTS）：
