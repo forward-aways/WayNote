@@ -1,9 +1,10 @@
 # ADR-20260929：行程删除级联修复、密钥配置外置与回归测试基建
 
-- 状态：待确认（Phase 2.5 CHECKPOINT）
+- 状态：已完成（Phase 5，2026-09-29）
 - 日期：2026-09-29
 - 范围：P0-1 删除级联、P0-2 配置/密钥治理、P1 垃圾导入清理、回归测试基建
 - 不包含（用户明确不做/本次不做）：Git 提交、日期类型迁移、docker-compose、Nginx/systemd 部署脚本、Note/Memo 功能
+- 生成方式：由开源技能 [deepcode-architect-skill](https://github.com/forward-aways/deepcode-architect-skill) 的工作流生成（分析 → 设计 → ADR 沉淀 → 确认 → 实现 → 验证），执行模型：DeepSeek V4.1 Flash
 
 ---
 
