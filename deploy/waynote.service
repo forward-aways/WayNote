@@ -1,0 +1,28 @@
+[Unit]
+Description=Waynote API (FastAPI + uvicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=waynote
+Group=waynote
+WorkingDirectory=/srv/waynote/backend
+Environment=PYTHONUNBUFFERED=1
+
+# 说明（详见 .deepcode/ADR-20260929-Waynote-deployment-systemd.md）：
+# 1) 只用 1 个 worker —— client_logs 的限流是进程内内存桶，多 worker 会让限额翻倍；
+# 2) 不加 --proxy-headers —— X-Forwarded-For 由应用中间件按 TRUSTED_PROXY_IPS 白名单处理，
+#    让 uvicorn 改写 scope["client"] 会与白名单判断打架。
+ExecStart=/srv/waynote/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+Restart=always
+RestartSec=3
+
+# 2G 内存机器上的基本保护（超出会被重启，日志见 journalctl）
+MemoryMax=512M
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -132,7 +132,10 @@ cd frontend && npm run build        # 生产构建
 - **信任边界与上报加固**：`X-Forwarded-For` 仅在直连对端属于 `TRUSTED_PROXY_IPS` 白名单时采信（**生产只填反代地址，严禁公网段**）；上报限流两档（登录 20 次/分钟、匿名 2 次/分钟）+ 全局 10 次/分钟兜底；日志控制字符清洗；单文件大小上限 10MB。
 - **上线前检查**：确认 `TRUSTED_PROXY_IPS` 只包含反代地址；如不希望公开注册，可临时将 `ALLOW_REGISTRATION=false`（后续计划改为邮件验证码注册）。
 
-## 部署（规划）
+## 部署
 
-腾讯云轻量应用服务器（Ubuntu Server 24.04 LTS）：
-Nginx 静态托管 `frontend/dist` + 反向代理 `/api` 到 uvicorn（systemd 托管），ICP 备案通过后上线。
+完整操作手册见 **[deploy/DEPLOY.md](deploy/DEPLOY.md)**（Ubuntu 24.04 · systemd · Nginx + 本机 PostgreSQL 16）。
+
+方案与取舍记录在 `.deepcode/ADR-20260929-Waynote-deployment-systemd.md`，要点：
+Nginx 静态托管 `frontend/dist` + 反向代理 `/api` 到 uvicorn（systemd 托管，单 worker）；
+前端在本地构建后上传产物（服务器无需 Node）；ICP 备案通过后再上 80/443 与 certbot。
