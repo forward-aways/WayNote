@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.db.session import get_db
 from app.models.user import User
 from app.models.trip import Trip
-from app.schemas.trip import TripCreate, TripUpdate, TripOut
+from app.models.trip_day import TripDay
+from app.models.place import Place
+from app.schemas.trip import TripCreate, TripUpdate, TripOut, TripListItem
 from app.api.deps import get_current_user
 
 
@@ -13,17 +15,38 @@ from app.api.deps import get_current_user
 router = APIRouter(prefix="/trips", tags=["trips"])
 
 
-# 获取当前用户的所有行程
-@router.get("", response_model=list[TripOut])
+# 获取当前用户的所有行程（附带天数/地点数只读计数）
+@router.get("", response_model=list[TripListItem])
 def list_trips(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
-    # 查询当前用户的所有行程，并按创建时间降序排列
-    result = db.execute(
-        select(Trip).where(Trip.user_id == current_user.id).order_by(Trip.created_at.desc())
+    # 标量子查询计数，避免 N+1 请求，也无需改表结构
+    day_count = (
+        select(func.count(TripDay.id))
+        .where(TripDay.trip_id == Trip.id)
+        .scalar_subquery()
     )
-    return result.scalars().all()
+    place_count = (
+        select(func.count(Place.id))
+        .where(Place.trip_id == Trip.id)
+        .scalar_subquery()
+    )
+
+    # 查询当前用户的行程，并按创建时间降序排列
+    rows = db.execute(
+        select(Trip, day_count.label("day_count"), place_count.label("place_count"))
+        .where(Trip.user_id == current_user.id)
+        .order_by(Trip.created_at.desc())
+    ).all()
+
+    items: list[TripListItem] = []
+    for trip, day_total, place_total in rows:
+        item = TripListItem.model_validate(trip)
+        item.day_count = day_total
+        item.place_count = place_total
+        items.append(item)
+    return items
 
 
 # 创建一个行程

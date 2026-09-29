@@ -33,3 +33,10 @@ class TripOut(BaseModel):
     class Config:
         from_attributes = True
 
+
+class TripListItem(TripOut):
+    """列表专用：附带只读计数（由列表查询的标量子查询填充，无表结构变更）。"""
+
+    day_count: int = 0
+    place_count: int = 0
+
