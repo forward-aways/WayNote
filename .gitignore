@@ -21,3 +21,6 @@ wheels/
 # Test / lint caches
 .pytest_cache/
 .ruff_cache/
+
+# 运行期日志（保留策略见 ADR-20260929 日志方案）
+backend/logs/

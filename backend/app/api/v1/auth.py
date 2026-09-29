@@ -6,9 +6,11 @@ from app.db.session import get_db
 from app.models.user import User
 from app.api.deps import get_current_user
 from app.schemas.user import UserRegister, UserLogin, UserOut, TokenOut
+from app.core.logging import get_logger
 from app.core.security import hash_password, verify_password, create_access_token
 
 
+log = get_logger("api.auth")
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -35,6 +37,7 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
     # 创建token
     token = create_access_token(user.id)
     # 返回token
+    log.info("用户注册 id=%s", user.id, extra={"event": "auth.register"})
     return TokenOut(access_token=token)
 
 
@@ -44,9 +47,11 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
     # 查询用户
     user = db.execute(select(User).where(User.email == data.email)).scalar_one_or_none()
     if not user or not verify_password(data.password, user.password_hash):
+        log.warning("登录失败 email=%s", data.email, extra={"event": "auth.login.failed"})
         raise HTTPException(status_code=400, detail="邮箱或密码错误")
     # 创建token
     token = create_access_token(user.id)
+    log.info("登录成功 id=%s", user.id, extra={"event": "auth.login"})
     return TokenOut(access_token=token)
 
 

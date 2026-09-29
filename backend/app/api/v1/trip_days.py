@@ -8,6 +8,9 @@ from app.models.trip import Trip
 from app.models.trip_day import TripDay
 from app.schemas.trip_day import TripDayCreate, TripDayUpdate, TripDayOut
 from app.api.deps import get_current_user
+from app.core.logging import get_logger
+
+log = get_logger("api.days")
 
 router = APIRouter(prefix="/trips/{trip_id}/days", tags=["trip-days"])
 
@@ -60,6 +63,7 @@ def create_day(
     db.add(day)
     db.commit()
     db.refresh(day)
+    log.info("添加日程 trip=%s day=%s date=%s", trip_id, day.id, day.date, extra={"event": "day.create"})
     return day
 
 
@@ -83,6 +87,7 @@ def update_day(
 
     db.commit()
     db.refresh(day)
+    log.info("更新日程 trip=%s day=%s", trip_id, day_id, extra={"event": "day.update"})
     return day
 
 
@@ -101,3 +106,4 @@ def delete_day(
 
     db.delete(day)
     db.commit()
+    log.info("删除日程 trip=%s day=%s", trip_id, day_id, extra={"event": "day.delete"})

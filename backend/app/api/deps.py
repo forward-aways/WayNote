@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.models.user import User
+from app.core.logging import user_id_var
 from app.core.security import decode_token
 
 
@@ -37,5 +38,8 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户不存在",
         )
+
+    # 日志上下文：后续业务日志自动携带 user_id
+    user_id_var.set(user.id)
 
     return user

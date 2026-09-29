@@ -9,8 +9,10 @@ from app.models.trip_day import TripDay
 from app.models.place import Place
 from app.schemas.place import PlaceCreate, PlaceUpdate, PlaceOut
 from app.api.deps import get_current_user
+from app.core.logging import get_logger
 
 
+log = get_logger("api.places")
 
 router = APIRouter(prefix="/trips/{trip_id}/places", tags=["places"])
 
@@ -59,6 +61,7 @@ def create_place(
     db.add(place)
     db.commit()
     db.refresh(place)
+    log.info("添加地点 trip=%s place=%s name=%s", trip_id, place.id, place.name, extra={"event": "place.create"})
     return place
 
 
@@ -88,6 +91,13 @@ def update_place(
 
     db.commit()
     db.refresh(place)
+    log.info(
+        "更新地点 trip=%s place=%s fields=%s",
+        trip_id,
+        place.id,
+        ",".join(payload.keys()) or "-",
+        extra={"event": "place.update"},
+    )
     return place
 
 
@@ -106,3 +116,4 @@ def delete_place(
 
     db.delete(place)
     db.commit()
+    log.info("删除地点 trip=%s place=%s", trip_id, place_id, extra={"event": "place.delete"})

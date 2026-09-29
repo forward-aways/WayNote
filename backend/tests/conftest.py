@@ -1,6 +1,10 @@
 import os
 from collections.abc import Iterator
 
+# 测试隔离：不写日志文件、降低日志级别（必须在导入 app 之前设置）
+os.environ.setdefault("LOG_TO_FILE", "false")
+os.environ.setdefault("LOG_LEVEL", "WARNING")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Connection, create_engine

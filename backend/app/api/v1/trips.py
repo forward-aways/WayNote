@@ -9,7 +9,10 @@ from app.models.trip_day import TripDay
 from app.models.place import Place
 from app.schemas.trip import TripCreate, TripUpdate, TripOut, TripListItem
 from app.api.deps import get_current_user
+from app.core.logging import get_logger
 
+
+log = get_logger("api.trips")
 
 # 创建一个 APIRouter 实例
 router = APIRouter(prefix="/trips", tags=["trips"])
@@ -61,6 +64,7 @@ def create_trip(
     db.add(trip)
     db.commit()
     db.refresh(trip)
+    log.info("创建行程 id=%s title=%s", trip.id, trip.title, extra={"event": "trip.create"})
     return trip
 
 
@@ -89,11 +93,18 @@ def update_trip(
         raise HTTPException(status_code=404, detail="行程不存在")
 
     # 更新行程信息, model_dump(exclude_unset=True)表示只更新非空字段
-    for key, value in data.model_dump(exclude_unset=True).items():
+    payload = data.model_dump(exclude_unset=True)
+    for key, value in payload.items():
         setattr(trip, key, value)
 
     db.commit()
     db.refresh(trip)
+    log.info(
+        "更新行程 id=%s fields=%s",
+        trip.id,
+        ",".join(payload.keys()) or "-",
+        extra={"event": "trip.update"},
+    )
     return trip
 
 
@@ -111,3 +122,4 @@ def delete_trip(
     # 删除行程
     db.delete(trip)
     db.commit()
+    log.info("删除行程 id=%s", trip_id, extra={"event": "trip.delete"})
