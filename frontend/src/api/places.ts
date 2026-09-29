@@ -17,14 +17,14 @@ export interface Place {
 
 export interface PlaceCreate {
   name: string
-  day_id?: number
-  address?: string
-  lat?: number
-  lng?: number
-  category?: string
-  start_time?: string
-  end_time?: string
-  notes?: string
+  day_id?: number | null
+  address?: string | null
+  lat?: number | null
+  lng?: number | null
+  category?: string | null
+  start_time?: string | null
+  end_time?: string | null
+  notes?: string | null
   sort_order?: number
 }
 
@@ -36,6 +36,15 @@ export async function listPlaces(tripId: number, dayId?: number): Promise<Place[
 
 export async function createPlace(tripId: number, data: PlaceCreate): Promise<Place> {
   const res = await http.post(`/trips/${tripId}/places`, data)
+  return res.data
+}
+
+export async function updatePlace(
+  tripId: number,
+  placeId: number,
+  data: Partial<PlaceCreate>,
+): Promise<Place> {
+  const res = await http.patch(`/trips/${tripId}/places/${placeId}`, data)
   return res.data
 }
 

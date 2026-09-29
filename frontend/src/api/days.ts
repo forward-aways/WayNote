@@ -15,9 +15,18 @@ export async function listDays(tripId: number): Promise<TripDay[]> {
 
 export async function createDay(
   tripId: number,
-  data: { date: string; title?: string }
+  data: { date: string; title?: string },
 ): Promise<TripDay> {
   const res = await http.post(`/trips/${tripId}/days`, data)
+  return res.data
+}
+
+export async function updateDay(
+  tripId: number,
+  dayId: number,
+  data: { date?: string; title?: string | null },
+): Promise<TripDay> {
+  const res = await http.patch(`/trips/${tripId}/days/${dayId}`, data)
   return res.data
 }
 

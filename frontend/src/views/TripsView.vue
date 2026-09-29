@@ -1,25 +1,66 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useAuthStore } from '@/stores/auth'
-import { listTrips, createTrip, deleteTrip } from '@/api/trips'
-import type { Trip } from '@/api/trips'
+import AppBar from '@/components/AppBar.vue'
+import AppIcon from '@/components/AppIcon.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import FormSheet from '@/components/FormSheet.vue'
+import TripCard from '@/components/TripCard.vue'
+import { createTrip, deleteTrip, listTrips, updateTrip } from '@/api/trips'
+import type { TripListItem } from '@/api/trips'
+import { tripPhase } from '@/utils/trip'
+import { apiErrorMessage } from '@/utils/error'
 
-const auth = useAuthStore()
+type FilterKey = 'all' | 'upcoming' | 'ongoing' | 'finished'
+
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'upcoming', label: '待出发' },
+  { key: 'ongoing', label: '旅途中' },
+  { key: 'finished', label: '已结束' },
+]
+
 const router = useRouter()
+const trips = ref<TripListItem[]>([])
+const loading = ref(true)
+const activeFilter = ref<FilterKey>('all')
 
-const trips = ref<Trip[]>([])
-const loading = ref(false)
-const dialogVisible = ref(false)
-const submitting = ref(false)
-
+const sheetVisible = ref(false)
+const editingId = ref<number | null>(null)
+const saving = ref(false)
 const form = ref({
   title: '',
   destination: '',
   start_date: '',
   end_date: '',
   description: '',
+})
+
+/** 无日期行程归入「待出发」，保证任一筛选都不丢数据 */
+function phaseOf(trip: TripListItem): FilterKey {
+  const phase = tripPhase(trip)
+  return phase === 'undated' ? 'upcoming' : phase
+}
+
+const counts = computed(() => {
+  const result: Record<FilterKey, number> = { all: trips.value.length, upcoming: 0, ongoing: 0, finished: 0 }
+  for (const trip of trips.value) result[phaseOf(trip)] += 1
+  return result
+})
+
+const filtered = computed(() =>
+  activeFilter.value === 'all'
+    ? trips.value
+    : trips.value.filter((trip) => phaseOf(trip) === activeFilter.value),
+)
+
+const summaryText = computed(() => {
+  if (trips.value.length === 0) return ''
+  const upcoming = counts.value.upcoming
+  return upcoming > 0
+    ? `共 ${trips.value.length} 段行程 · ${upcoming} 段待出发`
+    : `共 ${trips.value.length} 段行程`
 })
 
 async function loadTrips() {
@@ -33,238 +74,372 @@ async function loadTrips() {
   }
 }
 
-function openDialog() {
+function resetForm() {
+  form.value = { title: '', destination: '', start_date: '', end_date: '', description: '' }
+}
+
+function openCreate() {
+  resetForm()
+  editingId.value = null
+  sheetVisible.value = true
+}
+
+function openEdit(trip: TripListItem) {
+  editingId.value = trip.id
   form.value = {
-    title: '',
-    destination: '',
-    start_date: '',
-    end_date: '',
-    description: '',
+    title: trip.title,
+    destination: trip.destination ?? '',
+    start_date: trip.start_date?.slice(0, 10) ?? '',
+    end_date: trip.end_date?.slice(0, 10) ?? '',
+    description: trip.description ?? '',
   }
-  dialogVisible.value = true
+  sheetVisible.value = true
 }
 
 async function submit() {
-  if (!form.value.title.trim()) {
-    ElMessage.warning('请填写标题')
+  const title = form.value.title.trim()
+  if (!title) {
+    ElMessage.warning('请填写行程标题')
     return
   }
-  submitting.value = true
-  try {
-    const payload: any = { title: form.value.title.trim() }
-    if (form.value.destination) payload.destination = form.value.destination
-    if (form.value.start_date) payload.start_date = form.value.start_date
-    if (form.value.end_date) payload.end_date = form.value.end_date
-    if (form.value.description) payload.description = form.value.description
+  if (form.value.start_date && form.value.end_date && form.value.end_date < form.value.start_date) {
+    ElMessage.warning('结束日期不能早于开始日期')
+    return
+  }
 
-    await createTrip(payload)
-    ElMessage.success('创建成功')
-    dialogVisible.value = false
+  saving.value = true
+  try {
+    if (editingId.value === null) {
+      await createTrip({
+        title,
+        ...(form.value.destination.trim() ? { destination: form.value.destination.trim() } : {}),
+        ...(form.value.start_date ? { start_date: form.value.start_date } : {}),
+        ...(form.value.end_date ? { end_date: form.value.end_date } : {}),
+        ...(form.value.description.trim() ? { description: form.value.description.trim() } : {}),
+      })
+      ElMessage.success('行程已创建')
+    } else {
+      await updateTrip(editingId.value, {
+        title,
+        destination: form.value.destination.trim() || null,
+        start_date: form.value.start_date || null,
+        end_date: form.value.end_date || null,
+        description: form.value.description.trim() || null,
+      })
+      ElMessage.success('行程已更新')
+    }
+    sheetVisible.value = false
     await loadTrips()
-  } catch (e: any) {
-    ElMessage.error(e.response?.data?.detail || '创建失败')
+  } catch (error: unknown) {
+    ElMessage.error(apiErrorMessage(error, '保存失败'))
   } finally {
-    submitting.value = false
+    saving.value = false
   }
 }
 
-async function onDelete(trip: Trip) {
+async function onDelete(trip: TripListItem) {
   try {
-    await ElMessageBox.confirm(`确定删除「${trip.title}」吗？`, '提示', {
+    await ElMessageBox.confirm(`删除「${trip.title}」后，其日程与地点将一并删除且无法恢复。`, '删除行程', {
       type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
     })
   } catch {
     return
   }
   try {
     await deleteTrip(trip.id)
-    ElMessage.success('已删除')
+    ElMessage.success('行程已删除')
     await loadTrips()
   } catch {
     ElMessage.error('删除失败')
   }
 }
 
-function openTrip(trip: Trip) {
-  router.push(`/trips/${trip.id}`)
-}
-
-function logout() {
-  auth.logout()
-  router.push('/login')
-}
-
-onMounted(() => {
-  auth.fetchMe()
-  loadTrips()
-})
+onMounted(loadTrips)
 </script>
 
 <template>
   <div class="page">
-    <header class="topbar">
-      <div class="brand">途笺 Waynote</div>
-      <div class="user">
-        <span>{{ auth.user?.name || auth.user?.email }}</span>
-        <el-button link @click="logout">退出</el-button>
-      </div>
-    </header>
+    <AppBar />
 
-    <main class="content">
-      <div class="toolbar">
-        <h2>我的行程</h2>
-        <el-button type="primary" @click="openDialog">新建行程</el-button>
-      </div>
-
-      <div v-loading="loading">
-        <el-empty v-if="!loading && trips.length === 0" description="还没有行程，点右上角新建一个吧" />
-
-        <div v-else class="trip-grid">
-          <el-card
-            v-for="trip in trips"
-            :key="trip.id"
-            class="trip-card"
-            shadow="hover"
-            @click="openTrip(trip)"
-          >
-            <div class="trip-title">{{ trip.title }}</div>
-            <div class="trip-dest" v-if="trip.destination">📍 {{ trip.destination }}</div>
-            <div class="trip-date" v-if="trip.start_date">
-              {{ trip.start_date.slice(0, 10) }}
-              <span v-if="trip.end_date"> ~ {{ trip.end_date.slice(0, 10) }}</span>
-            </div>
-            <div class="trip-desc" v-if="trip.description">{{ trip.description }}</div>
-            <div class="trip-actions">
-              <el-button size="small" link type="danger" @click.stop="onDelete(trip)">
-                删除
-              </el-button>
-            </div>
-          </el-card>
+    <main class="wy-container content">
+      <header class="page-head">
+        <div>
+          <h1 class="page-title wy-display">我的行程</h1>
+          <p v-if="summaryText" class="page-sub">{{ summaryText }}</p>
         </div>
+        <el-button class="create-btn" type="primary" @click="openCreate">
+          <AppIcon name="plus" :size="16" />
+          新建行程
+        </el-button>
+      </header>
+
+      <nav v-if="trips.length > 0" class="filters" aria-label="行程筛选">
+        <button
+          v-for="item in FILTERS"
+          :key="item.key"
+          class="chip"
+          :class="{ active: activeFilter === item.key }"
+          type="button"
+          :aria-pressed="activeFilter === item.key"
+          @click="activeFilter = item.key"
+        >
+          {{ item.label }}
+          <span class="chip-count wy-num">{{ counts[item.key] }}</span>
+        </button>
+      </nav>
+
+      <div v-if="loading" class="trip-grid" aria-busy="true">
+        <div v-for="n in 3" :key="n" class="skeleton-card">
+          <div class="sk-stripe" />
+          <div class="sk-line w60" />
+          <div class="sk-line w40" />
+          <div class="sk-line w80" />
+        </div>
+      </div>
+
+      <EmptyState
+        v-else-if="trips.length === 0"
+        title="还没有行程，去写下第一段旅途吧"
+        description="记录想去的地方，出发时一目了然"
+      >
+        <el-button type="primary" @click="openCreate">
+          <AppIcon name="plus" :size="16" />
+          新建行程
+        </el-button>
+      </EmptyState>
+
+      <p v-else-if="filtered.length === 0" class="filter-empty">该筛选下暂无行程</p>
+
+      <div v-else class="trip-grid">
+        <TripCard
+          v-for="trip in filtered"
+          :key="trip.id"
+          :trip="trip"
+          @open="router.push(`/trips/${trip.id}`)"
+          @edit="openEdit(trip)"
+          @remove="onDelete(trip)"
+        />
       </div>
     </main>
 
-    <el-dialog v-model="dialogVisible" title="新建行程" width="480px">
-      <el-form label-width="80px">
+    <button class="fab" type="button" aria-label="新建行程" @click="openCreate">
+      <AppIcon name="plus" :size="24" />
+    </button>
+
+    <FormSheet v-model="sheetVisible" :title="editingId === null ? '新建行程' : '编辑行程'">
+      <el-form label-position="top" @submit.prevent="submit">
         <el-form-item label="标题" required>
-          <el-input v-model="form.title" placeholder="例如：京都三日游" />
+          <el-input v-model="form.title" placeholder="例如：京都三日游" maxlength="100" />
         </el-form-item>
         <el-form-item label="目的地">
-          <el-input v-model="form.destination" placeholder="例如：京都" />
+          <el-input v-model="form.destination" placeholder="例如：京都" maxlength="100" />
         </el-form-item>
-        <el-form-item label="开始日期">
-          <el-date-picker
-            v-model="form.start_date"
-            type="date"
-            value-format="YYYY-MM-DD"
-            placeholder="选择日期"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="结束日期">
-          <el-date-picker
-            v-model="form.end_date"
-            type="date"
-            value-format="YYYY-MM-DD"
-            placeholder="选择日期"
-            style="width: 100%"
-          />
-        </el-form-item>
+        <div class="form-row">
+          <el-form-item label="开始日期">
+            <el-date-picker
+              v-model="form.start_date"
+              type="date"
+              value-format="YYYY-MM-DD"
+              placeholder="选择日期"
+            />
+          </el-form-item>
+          <el-form-item label="结束日期">
+            <el-date-picker
+              v-model="form.end_date"
+              type="date"
+              value-format="YYYY-MM-DD"
+              placeholder="选择日期"
+            />
+          </el-form-item>
+        </div>
         <el-form-item label="描述">
           <el-input
             v-model="form.description"
             type="textarea"
             :rows="3"
+            maxlength="500"
             placeholder="简单描述一下这次旅行"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="submit">创建</el-button>
+        <div class="sheet-footer">
+          <el-button @click="sheetVisible = false">取消</el-button>
+          <el-button type="primary" :loading="saving" @click="submit">
+            {{ editingId === null ? '创建' : '保存' }}
+          </el-button>
+        </div>
       </template>
-    </el-dialog>
+    </FormSheet>
   </div>
 </template>
 
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f5f7fa;
-}
-.topbar {
-  height: 56px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-}
-.brand {
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 2px;
-}
-.user {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #666;
-  font-size: 14px;
 }
 .content {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 24px;
+  padding-top: var(--wy-s6);
+  padding-bottom: var(--wy-s12);
 }
-.toolbar {
+.page-head {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 20px;
+  gap: var(--wy-s4);
+  margin-bottom: var(--wy-s4);
 }
-.toolbar h2 {
+.page-title {
   margin: 0;
+  font-size: var(--wy-text-xl);
+  letter-spacing: 2px;
+}
+.page-sub {
+  margin-top: var(--wy-s1);
+  color: var(--wy-ink-3);
+  font-size: var(--wy-text-sm);
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wy-s2);
+  margin-bottom: var(--wy-s4);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--wy-line);
+  border-radius: 999px;
+  background: var(--wy-paper-card);
+  color: var(--wy-ink-2);
+  font-size: var(--wy-text-sm);
+  cursor: pointer;
+  transition: all var(--wy-dur) var(--wy-ease);
+}
+.chip:hover {
+  border-color: var(--wy-line-strong);
+}
+.chip.active {
+  border-color: var(--wy-cinnabar);
+  background: var(--wy-cinnabar-weak);
+  color: var(--wy-cinnabar);
+}
+.chip-count {
+  font-size: var(--wy-text-xs);
+  opacity: 0.75;
 }
 .trip-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  gap: var(--wy-s4);
 }
-.trip-card {
-  cursor: pointer;
-  transition: transform 0.15s;
+.filter-empty {
+  padding: var(--wy-s8) 0;
+  color: var(--wy-ink-3);
+  font-size: var(--wy-text-sm);
+  text-align: center;
 }
-.trip-card:hover {
-  transform: translateY(-2px);
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--wy-s3);
 }
-.trip-title {
-  font-size: 17px;
-  font-weight: 600;
-  margin-bottom: 8px;
+.form-row :deep(.el-date-editor) {
+  width: 100%;
 }
-.trip-dest {
-  color: #409eff;
-  font-size: 13px;
-  margin-bottom: 4px;
+.sheet-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--wy-s2);
 }
-.trip-date {
-  color: #999;
-  font-size: 12px;
-  margin-bottom: 6px;
+.create-btn {
+  flex-shrink: 0;
 }
-.trip-desc {
-  color: #666;
-  font-size: 13px;
-  margin-top: 6px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.fab {
+  display: none;
 }
-.trip-actions {
-  margin-top: 10px;
-  text-align: right;
+/* 骨架卡 */
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wy-s3);
+  padding: var(--wy-s4);
+  border: 1px solid var(--wy-line);
+  border-radius: var(--wy-r-md);
+  background: var(--wy-paper-card);
+}
+.sk-stripe {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--wy-paper-sunken);
+}
+.sk-line {
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--wy-paper-sunken) 25%,
+    var(--wy-line) 37%,
+    var(--wy-paper-sunken) 63%
+  );
+  background-size: 400% 100%;
+  animation: sk 1.4s ease infinite;
+}
+.w60 {
+  width: 60%;
+}
+.w40 {
+  width: 40%;
+}
+.w80 {
+  width: 80%;
+}
+@keyframes sk {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+@media (max-width: 767px) {
+  .page-head {
+    align-items: center;
+  }
+  .create-btn {
+    display: none;
+  }
+  .trip-grid {
+    grid-template-columns: 1fr;
+  }
+  .fab {
+    position: fixed;
+    right: var(--wy-s4);
+    bottom: calc(var(--wy-s6) + env(safe-area-inset-bottom));
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border: none;
+    border-radius: 50%;
+    background: var(--wy-cinnabar);
+    color: var(--wy-paper-card);
+    box-shadow: var(--wy-shadow-2);
+    cursor: pointer;
+    transition: transform var(--wy-dur) var(--wy-ease);
+  }
+  .fab:active {
+    transform: scale(0.94);
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
 }
 </style>

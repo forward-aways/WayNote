@@ -39,10 +39,14 @@ backend/
   tests/        # pytest 回归测试（事务回滚，不落数据）
 frontend/
   src/
-    api/        # axios 封装与接口
-    router/     # 路由与登录守卫
-    stores/     # Pinia
-    views/      # 页面（登录 / 注册 / 行程列表 / 行程详情）
+    api/         # axios 封装与接口
+    components/  # AppIcon / SealTag / EmptyState / FormSheet / AppBar / TripCard / AuthShell
+    composables/ # useIsMobile 等组合式函数
+    router/      # 路由与登录守卫
+    stores/      # Pinia
+    styles/      # 设计令牌（tokens.css）与 Element Plus 皮肤（element.css）
+    utils/       # 日期/状态/色板/错误提取等纯函数
+    views/       # 页面（登录 / 注册 / 行程列表 / 行程详情）
 ```
 
 ## 本地开发
@@ -92,7 +96,9 @@ npm run dev
 ```bash
 uv run pytest -q              # 后端回归测试（默认复用本地开发库，事务回滚不落数据）
 uv run ruff check backend     # Python 静态检查
-cd frontend && npm run type-check
+cd frontend && npm run type-check   # 类型检查
+cd frontend && npm run lint         # 设计令牌守卫 + oxlint + eslint
+cd frontend && npm run build        # 生产构建
 ```
 
 可选：设置 `TEST_DATABASE_URL` 指向独立测试库。

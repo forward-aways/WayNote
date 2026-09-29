@@ -1,0 +1,144 @@
+/* 全局基底：重置、纸面、排版、纸纹、通用工具类 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--wy-paper-bg);
+  color: var(--wy-ink-2);
+  font-family: var(--wy-font-body);
+  font-size: var(--wy-text-base);
+  line-height: 1.65;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 纸纹：SVG 噪点固定层，零资源开销 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+#app {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--wy-ink-1);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+a {
+  color: var(--wy-cinnabar);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--wy-cinnabar-weak);
+  color: var(--wy-ink-1);
+}
+
+:focus-visible {
+  outline: 2px solid var(--wy-cinnabar);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 滚动条（WebKit） */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--wy-line-strong);
+  border: 3px solid var(--wy-paper-bg);
+  border-radius: 999px;
+}
+
+/* ===== 通用工具类 ===== */
+.wy-container {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 var(--wy-s4);
+}
+
+.wy-display {
+  font-family: var(--wy-font-display);
+}
+
+.wy-num {
+  font-family: var(--wy-font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.wy-clamp-1,
+.wy-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.wy-clamp-1 {
+  -webkit-line-clamp: 1;
+}
+
+.wy-clamp-2 {
+  -webkit-line-clamp: 2;
+}
+
+.wy-card {
+  background: var(--wy-paper-card);
+  border: 1px solid var(--wy-line);
+  border-radius: var(--wy-r-md);
+  box-shadow: var(--wy-shadow-1);
+}
+
+/* 路由切换 */
+.wy-page-enter-active {
+  transition:
+    opacity var(--wy-dur) var(--wy-ease),
+    transform var(--wy-dur) var(--wy-ease);
+}
+
+.wy-page-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

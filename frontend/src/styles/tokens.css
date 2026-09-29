@@ -1,0 +1,62 @@
+/* 途笺设计令牌：颜色/字体/间距/圆角的唯一来源（禁止在页面中硬编码色值，见 scripts/check-tokens.mjs） */
+:root {
+  /* 纸张与墨色 */
+  --wy-paper-bg: #f7f3ec;
+  --wy-paper-card: #fffdf8;
+  --wy-paper-sunken: #f1ebe0;
+  --wy-ink-1: #2a2622;
+  --wy-ink-2: #574f46;
+  --wy-ink-3: #8a8177;
+  --wy-line: #e7dfd2;
+  --wy-line-strong: #d8cdbb;
+
+  /* 点缀色：朱砂 / 黛青 / 苔绿 / 赭金 / 藕紫 / 檀棕 */
+  --wy-cinnabar: #b5432e;
+  --wy-cinnabar-strong: #9c3624;
+  --wy-cinnabar-weak: #f3e2dc;
+  --wy-indigo: #3f5a66;
+  --wy-indigo-weak: #e3eaec;
+  --wy-moss: #5f7259;
+  --wy-moss-weak: #e7ede4;
+  --wy-gold: #c89b3c;
+  --wy-gold-weak: #f5ebd7;
+  --wy-plum: #8c6a8e;
+  --wy-plum-weak: #f0e7f1;
+  --wy-wood: #a87551;
+  --wy-wood-weak: #f4e9df;
+
+  /* 字体：标题用楷体栈（系统自带，零下载）；正文无衬线；日期/数字用表格数字 */
+  --wy-font-display: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', KaiTi, 'Noto Serif SC', serif;
+  --wy-font-body: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', -apple-system, 'Segoe UI', sans-serif;
+  --wy-font-num: 'Bahnschrift', 'DIN Alternate', 'Segoe UI', ui-monospace, monospace;
+
+  /* 字号 */
+  --wy-text-xs: 12px;
+  --wy-text-sm: 13px;
+  --wy-text-base: 15px;
+  --wy-text-md: 17px;
+  --wy-text-lg: 20px;
+  --wy-text-xl: 26px;
+  --wy-text-2xl: 32px;
+
+  /* 间距（4px 网格） */
+  --wy-s1: 4px;
+  --wy-s2: 8px;
+  --wy-s3: 12px;
+  --wy-s4: 16px;
+  --wy-s5: 20px;
+  --wy-s6: 24px;
+  --wy-s8: 32px;
+  --wy-s12: 48px;
+
+  /* 圆角与暖色阴影 */
+  --wy-r-sm: 8px;
+  --wy-r-md: 12px;
+  --wy-r-lg: 18px;
+  --wy-shadow-1: 0 1px 2px rgba(90, 70, 40, 0.06), 0 2px 8px rgba(90, 70, 40, 0.05);
+  --wy-shadow-2: 0 2px 6px rgba(90, 70, 40, 0.08), 0 12px 28px rgba(90, 70, 40, 0.1);
+
+  /* 动效 */
+  --wy-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --wy-dur: 160ms;
+}
