@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import AppBar from '@/components/AppBar.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import FormSheet from '@/components/FormSheet.vue'
@@ -161,9 +160,7 @@ onMounted(loadTrips)
 
 <template>
   <div class="page">
-    <AppBar />
-
-    <main class="wy-container content">
+    <main class="wy-container content wy-bottom-safe">
       <header class="page-head">
         <div>
           <h1 class="page-title wy-display">我的行程</h1>
@@ -214,9 +211,10 @@ onMounted(loadTrips)
 
       <div v-else class="trip-grid">
         <TripCard
-          v-for="trip in filtered"
+          v-for="(trip, index) in filtered"
           :key="trip.id"
           :trip="trip"
+          :style="{ animationDelay: `${index * 40}ms` }"
           @open="router.push(`/trips/${trip.id}`)"
           @edit="openEdit(trip)"
           @remove="onDelete(trip)"
@@ -312,9 +310,9 @@ onMounted(loadTrips)
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid var(--wy-line);
-  border-radius: 999px;
-  background: var(--wy-paper-card);
+  border: 1px solid var(--wy-glass-stroke);
+  border-radius: var(--wy-r-full);
+  background: rgba(255, 255, 255, 0.6);
   color: var(--wy-ink-2);
   font-size: var(--wy-text-sm);
   cursor: pointer;
@@ -324,9 +322,12 @@ onMounted(loadTrips)
   border-color: var(--wy-line-strong);
 }
 .chip.active {
-  border-color: var(--wy-cinnabar);
-  background: var(--wy-cinnabar-weak);
-  color: var(--wy-cinnabar);
+  border-color: transparent;
+  background: var(--wy-jade-surface);
+  color: var(--wy-on-jade);
+  box-shadow:
+    var(--wy-gem-highlight),
+    0 4px 12px rgba(4, 120, 87, 0.28);
 }
 .chip-count {
   font-size: var(--wy-text-xs);
@@ -368,23 +369,24 @@ onMounted(loadTrips)
   flex-direction: column;
   gap: var(--wy-s3);
   padding: var(--wy-s4);
-  border: 1px solid var(--wy-line);
+  border: 1px solid var(--wy-glass-stroke);
   border-radius: var(--wy-r-md);
-  background: var(--wy-paper-card);
+  background: var(--wy-glass-panel-bg);
+  box-shadow: var(--wy-shadow-2);
 }
 .sk-stripe {
-  height: 6px;
+  height: 8px;
   border-radius: 999px;
-  background: var(--wy-paper-sunken);
+  background: var(--wy-bg-soft);
 }
 .sk-line {
   height: 12px;
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    var(--wy-paper-sunken) 25%,
+    var(--wy-bg-soft) 25%,
     var(--wy-line) 37%,
-    var(--wy-paper-sunken) 63%
+    var(--wy-bg-soft) 63%
   );
   background-size: 400% 100%;
   animation: sk 1.4s ease infinite;
@@ -419,20 +421,28 @@ onMounted(loadTrips)
   .fab {
     position: fixed;
     right: var(--wy-s4);
-    bottom: calc(var(--wy-s6) + env(safe-area-inset-bottom));
+    bottom: calc(96px + env(safe-area-inset-bottom));
     z-index: 30;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
-    border: none;
+    width: 58px;
+    height: 58px;
     border-radius: 50%;
-    background: var(--wy-cinnabar);
-    color: var(--wy-paper-card);
-    box-shadow: var(--wy-shadow-2);
+    /* 透明淡绿光玻璃 FAB（与激活胶囊同款） */
+    background: color-mix(in srgb, var(--wy-accent-base) 20%, rgba(255, 255, 255, 0.34));
+    border: 1px solid color-mix(in srgb, var(--wy-accent-base) 34%, rgba(255, 255, 255, 0.5));
+    color: var(--wy-ink-1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      0 10px 24px color-mix(in srgb, var(--wy-accent-base) 32%, transparent);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    backdrop-filter: blur(12px) saturate(160%);
     cursor: pointer;
-    transition: transform var(--wy-dur) var(--wy-ease);
+    transition: transform var(--wy-dur) var(--wy-spring);
+  }
+  .fab:hover {
+    transform: translateY(-2px) scale(1.04);
   }
   .fab:active {
     transform: scale(0.94);

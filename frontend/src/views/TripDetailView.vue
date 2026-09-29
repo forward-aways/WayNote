@@ -2,11 +2,10 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import AppBar from '@/components/AppBar.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import FormSheet from '@/components/FormSheet.vue'
-import SealTag from '@/components/SealTag.vue'
+import TagChip from '@/components/TagChip.vue'
 import { deleteTrip, getTrip, updateTrip } from '@/api/trips'
 import type { Trip } from '@/api/trips'
 import { createDay, deleteDay, listDays, updateDay } from '@/api/days'
@@ -419,13 +418,11 @@ onMounted(loadAll)
 
 <template>
   <div class="page" v-loading="loading">
-    <AppBar back @back="router.push('/trips')" />
-
-    <main v-if="trip" class="wy-container content">
+    <main v-if="trip" class="wy-container content wy-bottom-safe">
       <!-- 行程头部 -->
       <section class="hero wy-card">
         <div class="hero-top">
-          <SealTag :text="PHASE_LABEL[phase]" :tone="PHASE_TONE[phase]" :filled="phase === 'ongoing'" size="md" />
+          <TagChip :text="PHASE_LABEL[phase]" :tone="PHASE_TONE[phase]" size="md" />
           <div class="hero-actions">
             <el-button text @click="openTripSheet">
               <AppIcon name="edit" :size="15" />
@@ -512,7 +509,7 @@ onMounted(loadAll)
                   <div class="place-title-line">
                     <span v-if="timeText(place)" class="time-chip wy-num">{{ timeText(place) }}</span>
                     <span class="place-name">{{ place.name }}</span>
-                    <SealTag v-if="place.category" :text="place.category" tone="indigo" />
+                    <TagChip v-if="place.category" :text="place.category" tone="gem" />
                   </div>
                   <p v-if="place.address" class="place-sub">
                     <AppIcon name="pin" :size="13" />
@@ -586,7 +583,7 @@ onMounted(loadAll)
           <div class="place-main">
             <div class="place-title-line">
               <span class="place-name">{{ place.name }}</span>
-              <SealTag v-if="place.category" :text="place.category" tone="indigo" />
+              <TagChip v-if="place.category" :text="place.category" tone="gem" />
             </div>
             <p v-if="place.address" class="place-sub">
               <AppIcon name="pin" :size="13" />
@@ -784,6 +781,8 @@ onMounted(loadAll)
 
 /* 头部 */
 .hero {
+  position: relative;
+  overflow: hidden;
   padding: var(--wy-s6);
   margin-bottom: var(--wy-s6);
 }
@@ -819,7 +818,11 @@ onMounted(loadAll)
   gap: 5px;
 }
 .hero-countdown {
-  color: var(--wy-cinnabar);
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--wy-sun-weak);
+  color: var(--wy-sun-strong);
+  font-weight: 600;
 }
 .hero-desc {
   margin: var(--wy-s3) 0 0;
@@ -829,7 +832,7 @@ onMounted(loadAll)
 .hero-stats {
   margin: var(--wy-s3) 0 0;
   padding-top: var(--wy-s3);
-  border-top: 1px dashed var(--wy-line-strong);
+  border-top: 1px solid var(--wy-line);
   color: var(--wy-ink-3);
   font-size: var(--wy-text-xs);
   letter-spacing: 0.5px;
@@ -844,8 +847,7 @@ onMounted(loadAll)
   gap: var(--wy-s3);
   padding: var(--wy-s4) var(--wy-s6);
   margin-bottom: var(--wy-s6);
-  border-style: dashed;
-  background: var(--wy-paper-card);
+  background: color-mix(in srgb, var(--wy-accent-base) 4%, rgba(255, 255, 255, 0.6));
 }
 .generate-text {
   margin: 0;
@@ -867,7 +869,7 @@ onMounted(loadAll)
   left: 11px;
   top: 12px;
   bottom: 12px;
-  border-left: 2px dashed var(--wy-line-strong);
+  border-left: 2px solid var(--wy-line-strong);
 }
 .day-block {
   position: relative;
@@ -875,13 +877,13 @@ onMounted(loadAll)
 }
 .day-node {
   position: absolute;
-  left: 4px;
-  top: 16px;
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--wy-cinnabar);
+  left: 6px;
+  top: 22px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: var(--wy-paper-bg);
+  background: var(--wy-grad-brand);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--wy-primary) 15%, transparent);
 }
 .day-card {
   padding: var(--wy-s4) var(--wy-s5);
@@ -892,7 +894,7 @@ onMounted(loadAll)
   justify-content: space-between;
   gap: var(--wy-s3);
   padding-bottom: var(--wy-s3);
-  border-bottom: 1px dashed var(--wy-line-strong);
+  border-bottom: 1px solid var(--wy-line);
   margin-bottom: var(--wy-s3);
 }
 .day-title-wrap {
@@ -904,14 +906,19 @@ onMounted(loadAll)
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 34px;
-  height: 34px;
-  padding: 0 6px;
-  border: 1.5px solid var(--wy-cinnabar);
-  border-radius: var(--wy-r-sm);
-  color: var(--wy-cinnabar);
+  min-width: 38px;
+  height: 38px;
+  padding: 0 8px;
+  border-radius: var(--wy-r-full);
+  /* 透明淡绿光玻璃（与侧栏/底栏激活胶囊同款） */
+  background: color-mix(in srgb, var(--wy-accent-base) 18%, rgba(255, 255, 255, 0.32));
+  border: 1px solid color-mix(in srgb, var(--wy-accent-base) 32%, rgba(255, 255, 255, 0.5));
+  color: var(--wy-ink-1);
   font-size: var(--wy-text-md);
-  transform: rotate(-2deg);
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 6px 16px color-mix(in srgb, var(--wy-accent-base) 26%, transparent);
 }
 .day-date {
   margin: 0;
@@ -960,7 +967,7 @@ onMounted(loadAll)
   transition: background var(--wy-dur) var(--wy-ease);
 }
 .place-row:hover {
-  background: var(--wy-paper-sunken);
+  background: rgba(255, 255, 255, 0.6);
 }
 .place-main {
   min-width: 0;
@@ -979,10 +986,11 @@ onMounted(loadAll)
 }
 .time-chip {
   padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--wy-indigo-weak);
-  color: var(--wy-indigo);
+  border-radius: var(--wy-r-full);
+  background: var(--wy-primary-weak);
+  color: var(--wy-primary-strong);
   font-size: var(--wy-text-xs);
+  font-weight: 600;
 }
 .place-sub {
   display: flex;
@@ -1026,7 +1034,7 @@ onMounted(loadAll)
   transition: all var(--wy-dur) var(--wy-ease);
 }
 .icon-btn:hover:not(:disabled) {
-  background: var(--wy-paper-sunken);
+  background: rgba(255, 255, 255, 0.85);
   color: var(--wy-ink-1);
 }
 .icon-btn:disabled {
@@ -1051,15 +1059,16 @@ onMounted(loadAll)
   transition: all var(--wy-dur) var(--wy-ease);
 }
 .text-btn:hover {
-  border-color: var(--wy-cinnabar);
-  color: var(--wy-cinnabar);
+  border-color: var(--wy-primary);
+  color: var(--wy-primary-strong);
 }
 .link-btn {
   padding: 0;
   border: none;
   background: none;
-  color: var(--wy-indigo);
+  color: var(--wy-primary-strong);
   font-size: var(--wy-text-xs);
+  font-weight: 600;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -1074,8 +1083,8 @@ onMounted(loadAll)
 /* 待定地点 */
 .pending {
   padding: var(--wy-s4) var(--wy-s5);
-  border-style: dashed;
   margin-bottom: var(--wy-s6);
+  background: color-mix(in srgb, var(--wy-accent-base) 4%, rgba(255, 255, 255, 0.6));
 }
 .pending-head {
   margin-bottom: var(--wy-s2);
@@ -1111,20 +1120,29 @@ onMounted(loadAll)
 .fab {
   position: fixed;
   right: var(--wy-s4);
-  bottom: calc(var(--wy-s6) + env(safe-area-inset-bottom));
+  bottom: calc(96px + env(safe-area-inset-bottom));
   z-index: 30;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
+  width: 58px;
+  height: 58px;
   border: none;
   border-radius: 50%;
-  background: var(--wy-cinnabar);
-  color: var(--wy-paper-card);
-  box-shadow: var(--wy-shadow-2);
+  /* 透明淡绿光玻璃 FAB（与激活胶囊同款，图标用最深墨色） */
+  background: color-mix(in srgb, var(--wy-accent-base) 20%, rgba(255, 255, 255, 0.34));
+  border: 1px solid color-mix(in srgb, var(--wy-accent-base) 34%, rgba(255, 255, 255, 0.5));
+  color: var(--wy-ink-1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 10px 24px color-mix(in srgb, var(--wy-accent-base) 32%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(160%);
   cursor: pointer;
-  transition: transform var(--wy-dur) var(--wy-ease);
+  transition: transform var(--wy-dur) var(--wy-spring);
+}
+.fab:hover {
+  transform: translateY(-2px) scale(1.04);
 }
 .fab:active {
   transform: scale(0.94);

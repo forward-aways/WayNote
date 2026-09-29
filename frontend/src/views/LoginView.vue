@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import AuthShell from '@/components/AuthShell.vue'
+import AuthPanel from '@/components/AuthPanel.vue'
 import { useAuthStore } from '@/stores/auth'
 import { apiErrorMessage } from '@/utils/error'
 
@@ -32,9 +32,7 @@ async function onSubmit() {
 </script>
 
 <template>
-  <AuthShell art-title="把旅途，写成一纸手账" art-sub="行程 · 地点 · 备忘 · 记录">
-    <h2 class="form-heading wy-display">欢迎回来</h2>
-
+  <AuthPanel title="欢迎回来" subtitle="登录后继续你的行程">
     <el-form label-position="top" @submit.prevent="onSubmit">
       <el-form-item label="邮箱">
         <el-input
@@ -74,15 +72,10 @@ async function onSubmit() {
     <p class="form-foot">
       还没有账号？<router-link to="/register">去注册</router-link>
     </p>
-  </AuthShell>
+  </AuthPanel>
 </template>
 
 <style scoped>
-.form-heading {
-  margin-bottom: var(--wy-s6);
-  font-size: var(--wy-text-xl);
-  letter-spacing: 2px;
-}
 .form-error {
   margin-bottom: var(--wy-s4);
   padding: var(--wy-s2) var(--wy-s3);
@@ -98,7 +91,7 @@ async function onSubmit() {
   letter-spacing: 6px;
 }
 .form-foot {
-  margin-top: var(--wy-s6);
+  margin: var(--wy-s6) 0 0;
   color: var(--wy-ink-3);
   font-size: var(--wy-text-sm);
   text-align: center;

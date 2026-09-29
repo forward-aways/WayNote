@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
-import SealTag from '@/components/SealTag.vue'
+import TagChip from '@/components/TagChip.vue'
 import type { TripListItem } from '@/api/trips'
 import {
   PHASE_LABEL,
@@ -33,27 +33,24 @@ function onCommand(command: string) {
 
 <template>
   <article
-    class="trip-card"
+    class="trip-card wy-rise"
     role="button"
     tabindex="0"
     :aria-label="`打开行程：${trip.title}`"
     @click="emit('open')"
     @keydown.enter.prevent="emit('open')"
   >
-    <div class="card-stripe" :style="{ background: palette.bar }" />
-
     <div class="card-body">
       <header class="card-head">
         <h3 class="card-title wy-clamp-2" :title="trip.title">{{ trip.title }}</h3>
-        <SealTag
+        <TagChip
           :text="PHASE_LABEL[phase]"
           :tone="PHASE_TONE[phase]"
-          :filled="phase === 'ongoing'"
         />
       </header>
 
       <p v-if="trip.destination" class="card-line">
-        <AppIcon name="pin" :size="14" />
+        <span class="dest-dot" :style="{ background: palette.gradient }" aria-hidden="true" />
         <span class="wy-clamp-1">{{ trip.destination }}</span>
       </p>
       <p class="card-line">
@@ -98,24 +95,35 @@ function onCommand(command: string) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--wy-line);
   border-radius: var(--wy-r-md);
-  background: var(--wy-paper-card);
-  box-shadow: var(--wy-shadow-1);
+  /* 淡雅翡翠玻璃卡：主题色轻染 + 镜面高光 + 边缘反光（不再用顶部色条） */
+  background:
+    var(--wy-sheen-soft),
+    color-mix(in srgb, var(--wy-accent-base) 8%, rgba(255, 255, 255, 0.86));
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    var(--wy-shadow-2);
   cursor: pointer;
   transition:
-    transform var(--wy-dur) var(--wy-ease),
+    transform var(--wy-dur) var(--wy-spring),
     box-shadow var(--wy-dur) var(--wy-ease);
 }
 .trip-card:hover {
-  transform: translateY(-3px) rotate(-0.4deg);
-  box-shadow: var(--wy-shadow-2);
+  transform: translateY(-4px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    var(--wy-float-shadow);
 }
 .trip-card:active {
-  transform: scale(0.99);
+  transform: translateY(-1px) scale(0.995);
 }
-.card-stripe {
-  height: 6px;
+.dest-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: var(--wy-gem-highlight);
 }
 .card-body {
   display: flex;
@@ -148,9 +156,12 @@ function onCommand(command: string) {
 }
 .countdown {
   margin-left: auto;
-  padding-left: var(--wy-s2);
-  color: var(--wy-cinnabar);
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--wy-sun-weak);
+  color: var(--wy-sun-strong);
   font-size: var(--wy-text-xs);
+  font-weight: 600;
   white-space: nowrap;
 }
 .card-desc {
@@ -163,12 +174,12 @@ function onCommand(command: string) {
   align-items: center;
   justify-content: space-between;
   padding: var(--wy-s2) var(--wy-s4);
-  border-top: 1px dashed var(--wy-line-strong);
+  background: rgba(255, 255, 255, 0.45);
 }
 .card-stats {
-  color: var(--wy-ink-3);
+  color: var(--wy-ink-2);
   font-size: var(--wy-text-xs);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 .more-btn {
   display: inline-flex;
@@ -191,7 +202,7 @@ function onCommand(command: string) {
   opacity: 1;
 }
 .more-btn:hover {
-  background: var(--wy-paper-sunken);
+  background: var(--wy-surface);
   color: var(--wy-ink-1);
 }
 .menu-item {

@@ -18,9 +18,9 @@ function getStyles(): Record<Level, string> {
   if (!cachedStyles) {
     cachedStyles = {
       debug: `color:${tokenColor('--wy-ink-3', 'gray')}`,
-      info: `color:${tokenColor('--wy-indigo', 'steelblue')}`,
-      warn: `color:${tokenColor('--wy-gold', 'orange')};font-weight:600`,
-      error: `color:${tokenColor('--wy-cinnabar', 'crimson')};font-weight:600`,
+      info: `color:${tokenColor('--wy-jade', 'steelblue')}`,
+      warn: `color:${tokenColor('--wy-sun-strong', 'orange')};font-weight:600`,
+      error: `color:${tokenColor('--wy-danger', 'crimson')};font-weight:600`,
     }
   }
   return cachedStyles

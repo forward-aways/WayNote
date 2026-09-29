@@ -1,22 +1,21 @@
-/* Element Plus 皮肤覆盖：唯一允许出现字面色值的样式文件（与 tokens 配合）
-   原则：优先改写官方 CSS 变量；选择器覆盖集中于此，页面组件内禁止改 EP 内部类 */
+/* Element Plus 玻璃化覆盖：唯一允许出现字面色值的样式文件（与 tokens 配合） */
 :root {
-  --el-color-primary: var(--wy-cinnabar);
-  --el-color-primary-light-3: color-mix(in srgb, var(--wy-cinnabar) 70%, #fff);
-  --el-color-primary-light-5: color-mix(in srgb, var(--wy-cinnabar) 50%, #fff);
-  --el-color-primary-light-7: color-mix(in srgb, var(--wy-cinnabar) 30%, #fff);
-  --el-color-primary-light-8: color-mix(in srgb, var(--wy-cinnabar) 20%, #fff);
-  --el-color-primary-light-9: var(--wy-cinnabar-weak);
-  --el-color-primary-dark-2: color-mix(in srgb, var(--wy-cinnabar) 80%, #000);
+  --el-color-primary: var(--wy-primary);
+  --el-color-primary-light-3: color-mix(in srgb, var(--wy-primary) 70%, #fff);
+  --el-color-primary-light-5: color-mix(in srgb, var(--wy-primary) 50%, #fff);
+  --el-color-primary-light-7: color-mix(in srgb, var(--wy-primary) 30%, #fff);
+  --el-color-primary-light-8: color-mix(in srgb, var(--wy-primary) 20%, #fff);
+  --el-color-primary-light-9: var(--wy-primary-weak);
+  --el-color-primary-dark-2: #036845;
 
-  --el-color-success: var(--wy-moss);
-  --el-color-success-light-9: var(--wy-moss-weak);
-  --el-color-warning: var(--wy-gold);
-  --el-color-warning-light-9: var(--wy-gold-weak);
-  --el-color-danger: #a83428;
-  --el-color-danger-light-9: #f6e3e0;
-  --el-color-info: var(--wy-indigo);
-  --el-color-info-light-9: var(--wy-indigo-weak);
+  --el-color-success: #12b76a;
+  --el-color-success-light-9: #e3f8ee;
+  --el-color-warning: #f79009;
+  --el-color-warning-light-9: #fef3d9;
+  --el-color-danger: var(--wy-danger);
+  --el-color-danger-light-9: #fde7e5;
+  --el-color-info: var(--wy-primary);
+  --el-color-info-light-9: var(--wy-primary-weak);
 
   --el-text-color-primary: var(--wy-ink-1);
   --el-text-color-regular: var(--wy-ink-2);
@@ -28,49 +27,104 @@
   --el-border-color-lighter: var(--wy-line);
   --el-border-color-extra-light: var(--wy-line);
 
-  --el-bg-color: var(--wy-paper-card);
-  --el-bg-color-overlay: var(--wy-paper-card);
-  --el-fill-color-blank: var(--wy-paper-card);
-  --el-fill-color-light: var(--wy-paper-sunken);
-  --el-fill-color-lighter: var(--wy-paper-sunken);
+  --el-bg-color: var(--wy-surface);
+  --el-bg-color-overlay: rgba(255, 255, 255, 0.88);
+  --el-fill-color-blank: rgba(255, 255, 255, 0.9);
+  --el-fill-color-light: var(--wy-bg-soft);
+  --el-fill-color-lighter: var(--wy-bg-soft);
 
-  --el-border-radius-base: 10px;
-  --el-border-radius-small: 8px;
+  --el-border-radius-base: 14px;
+  --el-border-radius-small: 12px;
   --el-font-family: var(--wy-font-body);
   --el-box-shadow-light: var(--wy-shadow-1);
   --el-box-shadow: var(--wy-shadow-2);
-  --el-overlay-color-lighter: rgba(42, 38, 34, 0.35);
+  --el-overlay-color-lighter: rgba(6, 40, 32, 0.3);
 }
 
-/* 按钮 */
+/* 玻璃：弹窗 / 抽屉 / 消息框 / 浮层 */
+.el-dialog,
+.el-drawer,
+.el-message-box {
+  background: var(--wy-glass-panel-strong);
+  border: 1px solid var(--wy-glass-stroke);
+  -webkit-backdrop-filter: blur(24px) saturate(var(--wy-glass-saturate));
+  backdrop-filter: blur(24px) saturate(var(--wy-glass-saturate));
+}
+
+.el-dialog,
+.el-message-box {
+  border-radius: var(--wy-r-lg);
+  box-shadow: var(--wy-float-shadow);
+}
+
+.el-drawer {
+  box-shadow: var(--wy-float-shadow);
+}
+
+.el-popper.is-light,
+.el-dropdown__popper,
+.el-select__popper,
+.el-picker__popper {
+  -webkit-backdrop-filter: blur(16px) saturate(var(--wy-glass-saturate));
+  backdrop-filter: blur(16px) saturate(var(--wy-glass-saturate));
+  border-radius: var(--wy-r-sm);
+}
+
+.el-overlay {
+  background-color: rgba(6, 40, 32, 0.3);
+}
+
+/* 按钮：宝石高光 + 光晕 */
 .el-button {
-  font-weight: 500;
-  letter-spacing: 0.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
 }
 
+/* 主按钮 = 宝石表面 + 宝石面墨色（亮翡翠上的文字由派生算法保证 ≥4.5:1） */
 .el-button--primary {
-  box-shadow: 0 2px 6px rgba(181, 67, 46, 0.22);
+  background: var(--wy-jade-surface);
+  border-color: transparent;
+  color: var(--wy-on-jade);
+  box-shadow:
+    var(--wy-gem-highlight),
+    var(--wy-gem-glow);
 }
 
-/* 输入类控件：纸面底色 */
+.el-button--primary:hover,
+.el-button--primary:focus-visible {
+  background: var(--wy-jade-surface);
+  border-color: transparent;
+  color: var(--wy-on-jade);
+  filter: brightness(1.06);
+}
+
+.el-button--primary:active {
+  filter: brightness(0.94);
+}
+
+.el-button--primary.is-disabled,
+.el-button--primary.is-disabled:hover {
+  filter: grayscale(0.5);
+  opacity: 0.6;
+}
+
+/* 输入类控件：半透明表面 */
 .el-input__wrapper,
 .el-textarea__inner {
-  background-color: var(--wy-paper-card);
+  background-color: rgba(255, 255, 255, 0.82);
 }
 
 .el-input__wrapper {
   border-radius: var(--wy-r-sm);
 }
 
-/* 对话框 / 抽屉 */
-.el-dialog {
-  border-radius: var(--wy-r-lg);
-}
-
+/* 对话框标题体系 */
 .el-dialog__title {
-  font-family: var(--wy-font-display);
+  font-family: var(--wy-font-body);
+  font-weight: 700;
   font-size: var(--wy-text-lg);
   color: var(--wy-ink-1);
+  letter-spacing: -0.01em;
 }
 
 .el-dialog__header,
@@ -80,16 +134,21 @@
   padding-right: var(--wy-s6);
 }
 
-/* 移动端底部抽屉（FormSheet 使用） */
+.el-message-box__title {
+  font-weight: 700;
+}
+
+/* 移动端底部抽屉（FormSheet / 外观设置 使用） */
 .wy-sheet-drawer {
-  max-height: 85vh;
+  max-height: 88vh;
   border-radius: var(--wy-r-lg) var(--wy-r-lg) 0 0;
 }
 
 .wy-sheet-drawer .el-drawer__header {
   margin-bottom: 0;
   padding: var(--wy-s4) var(--wy-s4) var(--wy-s2);
-  font-family: var(--wy-font-display);
+  font-family: var(--wy-font-body);
+  font-weight: 700;
   font-size: var(--wy-text-lg);
   color: var(--wy-ink-1);
 }
@@ -104,23 +163,23 @@
   border-top: 1px solid var(--wy-line);
 }
 
-/* 确认框 */
-.el-message-box {
-  border-radius: var(--wy-r-lg);
+/* 侧边抽屉（玻璃） */
+.wy-side-drawer {
+  border-radius: 0 var(--wy-r-lg) var(--wy-r-lg) 0;
 }
 
-.el-message-box__title {
-  font-family: var(--wy-font-display);
+.wy-side-drawer .el-drawer__body {
+  padding: var(--wy-s3);
 }
 
-/* 标签 / 分页 / 下拉 */
+/* 标签 / 下拉 */
 .el-tag {
-  border-radius: 6px;
+  border-radius: var(--wy-r-full);
 }
 
 .el-dropdown-menu__item:not(.is-disabled):focus {
-  background: var(--wy-cinnabar-weak);
-  color: var(--wy-cinnabar);
+  background: var(--wy-primary-weak);
+  color: var(--wy-primary-strong);
 }
 
 /* 表单标签 */
@@ -133,8 +192,8 @@
 .el-skeleton__item {
   background: linear-gradient(
     90deg,
-    var(--wy-paper-sunken) 25%,
+    var(--wy-bg-soft) 25%,
     var(--wy-line) 37%,
-    var(--wy-paper-sunken) 63%
+    var(--wy-bg-soft) 63%
   );
 }

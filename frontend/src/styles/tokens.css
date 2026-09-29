@@ -1,33 +1,133 @@
-/* 途笺设计令牌：颜色/字体/间距/圆角的唯一来源（禁止在页面中硬编码色值，见 scripts/check-tokens.mjs） */
+/* 途笺设计令牌 v3.1：翡翠宝石（可自定义主题色）+ 景深/沉浸光感/玻璃
+   唯一色值来源（禁止在页面中硬编码，见 scripts/check-tokens.mjs）
+   注意：--wy-jade* / --wy-primary* / --wy-on-jade 会被 utils/theme.ts 在运行时按用户主题覆盖 */
 :root {
-  /* 纸张与墨色 */
-  --wy-paper-bg: #f7f3ec;
-  --wy-paper-card: #fffdf8;
-  --wy-paper-sunken: #f1ebe0;
-  --wy-ink-1: #2a2622;
-  --wy-ink-2: #574f46;
-  --wy-ink-3: #8a8177;
-  --wy-line: #e7dfd2;
-  --wy-line-strong: #d8cdbb;
+  /* 底色与表面 */
+  --wy-bg: #f2f8f5;
+  --wy-surface: #ffffff;
+  --wy-bg-soft: #e6f2ec;
 
-  /* 点缀色：朱砂 / 黛青 / 苔绿 / 赭金 / 藕紫 / 檀棕 */
-  --wy-cinnabar: #b5432e;
-  --wy-cinnabar-strong: #9c3624;
-  --wy-cinnabar-weak: #f3e2dc;
-  --wy-indigo: #3f5a66;
-  --wy-indigo-weak: #e3eaec;
-  --wy-moss: #5f7259;
-  --wy-moss-weak: #e7ede4;
-  --wy-gold: #c89b3c;
-  --wy-gold-weak: #f5ebd7;
-  --wy-plum: #8c6a8e;
-  --wy-plum-weak: #f0e7f1;
-  --wy-wood: #a87551;
-  --wy-wood-weak: #f4e9df;
+  /* ===== 主题色（默认：翡翠；派生自基色 #22c55e，已通过对比度审计） ===== */
+  --wy-accent-base: #22c55e;
+  --wy-jade: #41cd75; /* 宝石表面（透亮） */
+  --wy-jade-bright: #76db9b; /* 高光端 */
+  --wy-jade-surface: linear-gradient(135deg, var(--wy-jade-bright), var(--wy-jade));
+  --wy-on-jade: #052a1b; /* 宝石面上的墨色（7.55:1） */
+  --wy-primary: #157a3a; /* 深色：文字/边框/链接（白字 5.41:1） */
+  --wy-primary-strong: #157a3a;
+  --wy-primary-weak: #dcf6e5;
 
-  /* 字体：标题用楷体栈（系统自带，零下载）；正文无衬线；日期/数字用表格数字 */
-  --wy-font-display: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', KaiTi, 'Noto Serif SC', serif;
-  --wy-font-body: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', -apple-system, 'Segoe UI', sans-serif;
+  /* 主题色预设（外观设置色板；每套均由 utils/theme.ts 同源算法派生并达标） */
+  --wy-accent-preset-emerald: #22c55e;
+  --wy-accent-preset-teal: #14b8a6;
+  --wy-accent-preset-sapphire: #3b82f6;
+  --wy-accent-preset-amethyst: #8b5cf6;
+  --wy-accent-preset-amber: #f59e0b;
+  --wy-accent-preset-coral: #fb7185;
+  --wy-accent-preset-sakura: #ec4899;
+  --wy-accent-preset-graphite: #64748b;
+
+  /* 暖阳：倒计时/强调 */
+  --wy-sun: #f5a623;
+  --wy-sun-strong: #92400e;
+  --wy-sun-weak: #fdf1dc;
+  --wy-danger: #d92d20; /* 白字 4.83:1 */
+
+  /* 文字（墨绿系；ink-3 已按玻璃复合对比度求解加深） */
+  --wy-ink-1: #0b2a22;
+  --wy-ink-2: #3f5e55;
+  --wy-ink-3: #476257;
+
+  /* 分隔（半透明，配合玻璃层次） */
+  --wy-line: rgba(6, 78, 59, 0.1);
+  --wy-line-strong: rgba(6, 78, 59, 0.18);
+
+  /* 玻璃配方（不透明度经纯黑背景最坏情况求解，保证最小字号也 ≥4.5:1） */
+  --wy-glass-panel-bg: rgba(255, 255, 255, 0.82);
+  --wy-glass-panel-strong: rgba(255, 255, 255, 0.9);
+  --wy-glass-stroke: rgba(255, 255, 255, 0.55);
+  --wy-glass-saturate: 140%;
+
+  /* 悬浮层专用：通透染色玻璃（低不透明度 + 主题色染；文字必须用 ink-1，
+     见求解：alpha 0.38~0.44 时最坏情况对比度 5.9~6.6:1。高不透明度会让背景光球在边界"截断"） */
+  --wy-glass-chrome-bg: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--wy-accent-base) 6%, rgba(255, 255, 255, 0.44)),
+    color-mix(in srgb, var(--wy-accent-base) 6%, rgba(255, 255, 255, 0.38))
+  );
+  --wy-glass-chrome-blur: 24px;
+  --wy-glass-chrome-saturate: 180%;
+
+  /* 液态玻璃：镜面高光渐变（左上亮 → 中段极淡 → 右下回光） */
+  --wy-sheen: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.1) 34%,
+    rgba(255, 255, 255, 0.05) 62%,
+    rgba(255, 255, 255, 0.32) 100%
+  );
+  /* 内容卡用的轻量版 sheen（避免卡片过亮） */
+  --wy-sheen-soft: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.34) 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(255, 255, 255, 0.04) 65%,
+    rgba(255, 255, 255, 0.2) 100%
+  );
+  /* 边缘反光（液态玻璃的"厚度"）：顶亮、底弱、两侧细光 */
+  --wy-lens-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.25),
+    inset 1px 0 0 rgba(255, 255, 255, 0.2),
+    inset -1px 0 0 rgba(255, 255, 255, 0.2);
+
+  /* 阴影：玻璃/悬浮/宝石 */
+  --wy-shadow-1: 0 2px 10px rgba(6, 60, 46, 0.08);
+  --wy-shadow-2: 0 12px 32px rgba(6, 60, 46, 0.14), 0 2px 8px rgba(6, 60, 46, 0.08);
+  --wy-float-shadow: 0 16px 40px rgba(6, 60, 46, 0.2), 0 2px 8px rgba(6, 60, 46, 0.1);
+  --wy-gem-glow: 0 10px 26px color-mix(in srgb, var(--wy-accent-base) 42%, transparent);
+  --wy-gem-highlight:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+
+  /* 品牌渐变（= 宝石表面） */
+  --wy-grad-brand: var(--wy-jade-surface);
+
+  /* 目的地渐变板：宝石家族 */
+  --wy-grad-emerald: linear-gradient(135deg, #157a3a, #41cd75);
+  --wy-grad-emerald-weak: #dcf6e5;
+  --wy-grad-jade: linear-gradient(135deg, #0f766e, #2dd4bf);
+  --wy-grad-jade-weak: #d8f1ee;
+  --wy-grad-sapphire: linear-gradient(135deg, #1d4ed8, #60a5fa);
+  --wy-grad-sapphire-weak: #dfe8fd;
+  --wy-grad-amber: linear-gradient(135deg, #b45309, #fbbf24);
+  --wy-grad-amber-weak: #fdf1dc;
+  --wy-grad-peridot: linear-gradient(135deg, #4d7c0f, #a3e635);
+  --wy-grad-peridot-weak: #ecf8d8;
+  --wy-grad-amethyst: linear-gradient(135deg, #6d28d9, #a78bfa);
+  --wy-grad-amethyst-weak: #ece7fd;
+
+  /* 极光光斑（L1 光晕层；已按反馈调淡约 1/3，模糊加大到 56px） */
+  --wy-aurora-1: radial-gradient(closest-side, rgba(16, 185, 129, 0.42), transparent 70%);
+  --wy-aurora-2: radial-gradient(closest-side, rgba(15, 118, 110, 0.34), transparent 70%);
+  --wy-aurora-3: radial-gradient(closest-side, rgba(56, 189, 248, 0.26), transparent 70%);
+
+  /* L0 背景基座与可读性遮罩（运行时由外观设置注入 --wy-user-bg） */
+  --wy-user-bg: none;
+  --wy-user-bg-fallback: linear-gradient(160deg, #d9f2e6, #d8f1ee 45%, #dfe8fd);
+  --wy-scrim: linear-gradient(180deg, rgba(242, 248, 245, 0.62), rgba(242, 248, 245, 0.42));
+
+  /* 预设背景（外观设置中的 6 组） */
+  --wy-bg-preset-aurora: linear-gradient(160deg, #d9f2e6, #d8f1ee 45%, #dfe8fd);
+  --wy-bg-preset-emerald: linear-gradient(160deg, #d7f0e2, #a9e4c9 60%, #7ed3b5);
+  --wy-bg-preset-sapphire: linear-gradient(160deg, #e0e9fd, #c8d9fb 55%, #a9c1f7);
+  --wy-bg-preset-amethyst: linear-gradient(160deg, #ece7fd, #ded3fa 55%, #c9b6f5);
+  --wy-bg-preset-amber: linear-gradient(160deg, #fdf1dc, #fbe3b8 55%, #f7cf8d);
+  --wy-bg-preset-sunrise: linear-gradient(160deg, #fde7e5, #fdd6c2 50%, #fbe0a8);
+
+  /* 字体：全无衬线 */
+  --wy-font-body: 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', -apple-system,
+    'Segoe UI', sans-serif;
   --wy-font-num: 'Bahnschrift', 'DIN Alternate', 'Segoe UI', ui-monospace, monospace;
 
   /* 字号 */
@@ -49,14 +149,15 @@
   --wy-s8: 32px;
   --wy-s12: 48px;
 
-  /* 圆角与暖色阴影 */
-  --wy-r-sm: 8px;
-  --wy-r-md: 12px;
-  --wy-r-lg: 18px;
-  --wy-shadow-1: 0 1px 2px rgba(90, 70, 40, 0.06), 0 2px 8px rgba(90, 70, 40, 0.05);
-  --wy-shadow-2: 0 2px 6px rgba(90, 70, 40, 0.08), 0 12px 28px rgba(90, 70, 40, 0.1);
+  /* 圆角（更圆润：卡片 22px，容器 32px） */
+  --wy-r-sm: 14px;
+  --wy-r-md: 22px;
+  --wy-r-lg: 32px;
+  --wy-r-full: 999px;
 
-  /* 动效 */
+  /* 动效（spring 用于"玻璃滑动/落定"的物理感） */
   --wy-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --wy-dur: 160ms;
+  --wy-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --wy-dur: 180ms;
+  --wy-dur-slide: 420ms;
 }

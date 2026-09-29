@@ -45,10 +45,10 @@ export const PHASE_LABEL: Record<TripPhase, string> = {
   finished: '已归档',
 }
 
-export const PHASE_TONE: Record<TripPhase, 'cinnabar' | 'indigo' | 'moss' | 'gold' | 'ink'> = {
+export const PHASE_TONE: Record<TripPhase, 'primary' | 'sun' | 'ink' | 'gem'> = {
   undated: 'ink',
-  upcoming: 'gold',
-  ongoing: 'moss',
+  upcoming: 'sun',
+  ongoing: 'gem',
   finished: 'ink',
 }
 
@@ -130,19 +130,22 @@ export function timeText(place: PlaceTimeInput): string {
   return ''
 }
 
-/** 目的地 → 恒定色板（同一名称永远得到同一颜色） */
-const PALETTE: readonly { bar: string; soft: string }[] = [
-  { bar: 'var(--wy-cinnabar)', soft: 'var(--wy-cinnabar-weak)' },
-  { bar: 'var(--wy-indigo)', soft: 'var(--wy-indigo-weak)' },
-  { bar: 'var(--wy-moss)', soft: 'var(--wy-moss-weak)' },
-  { bar: 'var(--wy-gold)', soft: 'var(--wy-gold-weak)' },
-  { bar: 'var(--wy-plum)', soft: 'var(--wy-plum-weak)' },
-  { bar: 'var(--wy-wood)', soft: 'var(--wy-wood-weak)' },
+/** 目的地 → 恒定渐变板（同一名称永远得到同一配色；色值统一来自 tokens.css） */
+const PALETTE: readonly { gradient: string; soft: string }[] = [
+  { gradient: 'var(--wy-grad-emerald)', soft: 'var(--wy-grad-emerald-weak)' },
+  { gradient: 'var(--wy-grad-jade)', soft: 'var(--wy-grad-jade-weak)' },
+  { gradient: 'var(--wy-grad-sapphire)', soft: 'var(--wy-grad-sapphire-weak)' },
+  { gradient: 'var(--wy-grad-amber)', soft: 'var(--wy-grad-amber-weak)' },
+  { gradient: 'var(--wy-grad-peridot)', soft: 'var(--wy-grad-peridot-weak)' },
+  { gradient: 'var(--wy-grad-amethyst)', soft: 'var(--wy-grad-amethyst-weak)' },
 ]
 
-const FALLBACK_COLOR = { bar: 'var(--wy-cinnabar)', soft: 'var(--wy-cinnabar-weak)' }
+const FALLBACK_COLOR = { gradient: 'var(--wy-grad-brand)', soft: 'var(--wy-primary-weak)' }
 
-export function destinationPalette(name: string | null | undefined): { bar: string; soft: string } {
+export function destinationPalette(name: string | null | undefined): {
+  gradient: string
+  soft: string
+} {
   const key = (name ?? '').trim() || '未命名'
   let hash = 0
   for (const ch of key) {

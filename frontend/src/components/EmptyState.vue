@@ -41,14 +41,20 @@ withDefaults(defineProps<{ title: string; description?: string }>(), { descripti
   text-align: center;
 }
 .empty-art {
-  color: var(--wy-line-strong);
+  display: grid;
+  place-items: center;
+  width: 200px;
+  height: 132px;
+  border-radius: var(--wy-r-lg);
+  background: linear-gradient(160deg, var(--wy-primary-weak), var(--wy-jade));
+  color: var(--wy-primary-strong);
 }
 .empty-art .pin {
-  color: var(--wy-cinnabar);
+  color: var(--wy-sun-strong);
 }
 .empty-art svg {
-  width: 160px;
-  height: 96px;
+  width: 152px;
+  height: 92px;
 }
 .empty-title {
   color: var(--wy-ink-2);

@@ -1,19 +1,42 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+/** 顶栏：左上角侧边栏按钮（或返回）+ 品牌；右上角用户信息保持原样 */
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AppIcon from '@/components/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
 
-withDefaults(defineProps<{ back?: boolean }>(), { back: false })
-const emit = defineEmits<{ back: [] }>()
+withDefaults(defineProps<{ back?: boolean; menu?: boolean; showBrand?: boolean }>(), {
+  back: false,
+  menu: false,
+  showBrand: true,
+})
+const emit = defineEmits<{ back: []; menu: [] }>()
 
 const auth = useAuthStore()
 const router = useRouter()
 
-// 刷新后恢复用户信息（AppBar 在所有登录后页面复用，集中处理）
+// 顶栏透明态 / 滚动态：页面顶部完全融入背景，下滑后渐显磨砂玻璃（内容从下方穿过时需要）
+const scrolled = ref(false)
+let ticking = false
+
+function onScroll() {
+  if (ticking) return
+  ticking = true
+  requestAnimationFrame(() => {
+    scrolled.value = window.scrollY > 8
+    ticking = false
+  })
+}
+
 onMounted(() => {
   if (auth.token && !auth.user) auth.fetchMe()
+  onScroll()
+  window.addEventListener('scroll', onScroll, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onScroll)
 })
 
 const avatarChar = computed(() =>
@@ -30,11 +53,28 @@ function onCommand(command: string) {
 
 <template>
   <header class="appbar">
+    <span class="appbar-veil liquid-glass" :class="{ visible: scrolled }" aria-hidden="true" />
     <div class="bar-inner wy-container">
-      <button v-if="back" class="icon-btn" type="button" aria-label="返回" @click="emit('back')">
+      <button
+        v-if="back"
+        class="icon-btn"
+        type="button"
+        aria-label="返回"
+        @click="emit('back')"
+      >
         <AppIcon name="arrow-left" :size="20" />
       </button>
-      <router-link class="brand" to="/trips">
+      <button
+        v-else-if="menu"
+        class="icon-btn"
+        type="button"
+        aria-label="打开侧边栏"
+        @click="emit('menu')"
+      >
+        <AppIcon name="menu" :size="20" />
+      </button>
+
+      <router-link v-if="showBrand" class="brand" to="/trips">
         <span class="brand-seal" aria-hidden="true">途</span>
         <span class="brand-name wy-display">途笺</span>
         <span class="brand-en">Waynote</span>
@@ -64,16 +104,26 @@ function onCommand(command: string) {
 .appbar {
   position: sticky;
   top: 0;
-  z-index: 20;
-  border-bottom: 1px solid var(--wy-line);
-  background: color-mix(in srgb, var(--wy-paper-bg) 86%, transparent);
-  backdrop-filter: blur(8px);
+  z-index: 30;
+}
+/* 透明态与磨砂态之间用"蒙层渐变"过渡（避免渐变背景硬切） */
+.appbar-veil {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms var(--wy-ease);
+}
+.appbar-veil.visible {
+  opacity: 1;
 }
 .bar-inner {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: var(--wy-s3);
-  height: 56px;
+  height: 58px;
 }
 .brand {
   display: inline-flex;
@@ -88,19 +138,21 @@ function onCommand(command: string) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: 1.5px solid var(--wy-cinnabar);
-  border-radius: 6px;
-  color: var(--wy-cinnabar);
-  font-family: var(--wy-font-display);
-  font-size: var(--wy-text-md);
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--wy-jade-surface);
+  color: var(--wy-on-jade);
+  font-size: var(--wy-text-base);
+  font-weight: 700;
   line-height: 1;
-  transform: translateY(3px);
+  box-shadow:
+    var(--wy-gem-highlight),
+    0 4px 12px rgba(4, 120, 87, 0.3);
 }
 .brand-name {
   font-size: var(--wy-text-lg);
-  letter-spacing: 2px;
+  letter-spacing: 1px;
 }
 .brand-en {
   color: var(--wy-ink-3);
@@ -115,36 +167,43 @@ function onCommand(command: string) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid transparent;
+  width: 36px;
+  height: 36px;
+  border: none;
   border-radius: var(--wy-r-sm);
-  background: transparent;
-  color: var(--wy-ink-2);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--wy-ink-1);
   cursor: pointer;
-  transition: all var(--wy-dur) var(--wy-ease);
+  transition:
+    background var(--wy-dur) var(--wy-ease),
+    transform var(--wy-dur) var(--wy-spring);
 }
 .icon-btn:hover {
-  border-color: var(--wy-line);
-  background: var(--wy-paper-card);
+  background: rgba(255, 255, 255, 0.85);
+}
+.icon-btn:active {
+  transform: scale(0.94);
 }
 .avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--wy-line-strong);
+  width: 36px;
+  height: 36px;
+  border: none;
   border-radius: 50%;
-  background: var(--wy-paper-card);
-  color: var(--wy-cinnabar);
+  background: var(--wy-jade-surface);
+  color: var(--wy-on-jade);
   font-size: var(--wy-text-sm);
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow:
+    var(--wy-gem-highlight),
+    var(--wy-gem-glow);
   cursor: pointer;
-  transition: box-shadow var(--wy-dur) var(--wy-ease);
+  transition: transform var(--wy-dur) var(--wy-spring);
 }
 .avatar:hover {
-  box-shadow: var(--wy-shadow-1);
+  transform: translateY(-1px);
 }
 .logout-item {
   display: inline-flex;
