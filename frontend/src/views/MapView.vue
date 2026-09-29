@@ -253,11 +253,19 @@ onMounted(load)
   color: var(--wy-ink-2);
   font-size: var(--wy-text-xs);
   cursor: pointer;
-  transition: all var(--wy-dur) var(--wy-ease);
+  transition:
+    transform var(--wy-dur) var(--wy-spring),
+    background var(--wy-dur) var(--wy-ease),
+    border-color var(--wy-dur) var(--wy-ease),
+    color var(--wy-dur) var(--wy-ease);
 }
 .text-btn:hover {
   border-color: var(--wy-primary);
   color: var(--wy-primary-strong);
+  transform: translateY(-2px);
+}
+.text-btn:active {
+  transform: translateY(0) scale(0.96);
 }
 @media (max-width: 767px) {
   .place {

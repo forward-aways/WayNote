@@ -154,7 +154,7 @@ function openAppearance() {
   flex-direction: column;
   gap: 4px;
 }
-/* 激活态：淡雅翡翠玻璃（与全站内容卡同族；不用发光、不用纯绿实心） */
+/* 激活态：淡雅翡翠玻璃（配方见 tokens 的 --wy-nav-active-*） */
 .side-indicator {
   position: absolute;
   left: 0;
@@ -163,12 +163,11 @@ function openAppearance() {
   border-radius: var(--wy-r-sm);
   background:
     var(--wy-sheen-soft),
-    color-mix(in srgb, var(--wy-accent-base) 12%, rgba(255, 255, 255, 0.74));
-  border: 1px solid rgba(255, 255, 255, 0.5);
+    var(--wy-nav-active-bg);
+  border: 1px solid var(--wy-nav-active-rim);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 0 0 1px color-mix(in srgb, var(--wy-accent-base) 14%, transparent),
-    0 6px 16px rgba(6, 60, 46, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    var(--wy-nav-active-glow);
   pointer-events: none;
 }
 /* 首帧直接落位，之后非线性滑动（弹簧落定：先快后慢带一丝回弹，与底栏同款） */
@@ -212,8 +211,21 @@ function openAppearance() {
 .side-nav:not(.measured) .side-item.active {
   background:
     var(--wy-sheen-soft),
-    color-mix(in srgb, var(--wy-accent-base) 12%, rgba(255, 255, 255, 0.74));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    var(--wy-nav-active-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* 放大镜：激活项被"放大"（纯几何放大，字形不变形；弹簧过渡出放大感） */
+.side-item > :deep(svg),
+.side-item > span {
+  transition: transform var(--wy-dur) var(--wy-spring);
+}
+.side-item.active > span {
+  transform: scale(1.12);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.side-item.active > :deep(svg) {
+  transform: scale(1.14);
 }
 .side-divider {
   height: 1px;

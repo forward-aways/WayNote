@@ -179,6 +179,9 @@ function onAurora(value: unknown) {
 .accent:hover {
   transform: translateY(-2px) scale(1.04);
 }
+.accent:active {
+  transform: translateY(0) scale(0.97);
+}
 .accent.active {
   border-color: var(--wy-ink-1);
 }
@@ -215,6 +218,9 @@ function onAurora(value: unknown) {
 }
 .preset:hover {
   transform: translateY(-2px);
+}
+.preset:active {
+  transform: translateY(0) scale(0.98);
 }
 .preset.active {
   border-color: var(--wy-primary);

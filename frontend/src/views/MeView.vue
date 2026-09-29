@@ -248,7 +248,9 @@ onMounted(() => {
   color: var(--wy-ink-1);
   text-align: left;
   cursor: pointer;
-  transition: background var(--wy-dur) var(--wy-ease);
+  transition:
+    background var(--wy-dur) var(--wy-ease),
+    transform var(--wy-dur) var(--wy-spring);
 }
 .row.static {
   cursor: default;
@@ -256,9 +258,15 @@ onMounted(() => {
 a.row:hover {
   text-decoration: none;
   background: rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
 }
 button.row:hover {
   background: rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+}
+a.row:active,
+button.row:active {
+  transform: translateY(0) scale(0.99);
 }
 .row-icon {
   display: inline-flex;

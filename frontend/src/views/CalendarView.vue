@@ -254,7 +254,15 @@ onMounted(load)
   background: rgba(255, 255, 255, 0.6);
   color: var(--wy-ink-1);
   cursor: pointer;
-  transition: transform var(--wy-dur) var(--wy-spring);
+  transition:
+    transform var(--wy-dur) var(--wy-spring),
+    background var(--wy-dur) var(--wy-ease),
+    border-color var(--wy-dur) var(--wy-ease);
+}
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: var(--wy-line-strong);
+  transform: translateY(-2px);
 }
 .icon-btn:active {
   transform: scale(0.94);
@@ -267,6 +275,19 @@ onMounted(load)
   color: var(--wy-ink-2);
   font-size: var(--wy-text-sm);
   cursor: pointer;
+  transition:
+    transform var(--wy-dur) var(--wy-spring),
+    background var(--wy-dur) var(--wy-ease),
+    border-color var(--wy-dur) var(--wy-ease),
+    color var(--wy-dur) var(--wy-ease);
+}
+.today-btn:hover {
+  border-color: var(--wy-line-strong);
+  color: var(--wy-ink-1);
+  transform: translateY(-2px);
+}
+.today-btn:active {
+  transform: translateY(0) scale(0.96);
 }
 .grid-card {
   padding: var(--wy-s4);
@@ -300,10 +321,18 @@ onMounted(load)
   cursor: pointer;
   transition:
     background var(--wy-dur) var(--wy-ease),
-    border-color var(--wy-dur) var(--wy-ease);
+    border-color var(--wy-dur) var(--wy-ease),
+    transform var(--wy-dur) var(--wy-spring),
+    box-shadow var(--wy-dur) var(--wy-ease);
 }
 .cell:hover {
   background: rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+  box-shadow: var(--wy-shadow-1);
+  z-index: 1;
+}
+.cell:active {
+  transform: translateY(0) scale(0.96);
 }
 .cell.outside {
   color: var(--wy-ink-3);

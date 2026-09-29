@@ -676,7 +676,7 @@ onMounted(loadAll)
       aria-label="添加地点"
       @click="openPlaceSheet(days[0]?.id ?? null)"
     >
-      <AppIcon name="plus" :size="24" />
+      <AppIcon name="plus" :size="26" />
     </button>
 
     <!-- 行程表单 -->
@@ -1076,11 +1076,18 @@ onMounted(loadAll)
   background: transparent;
   color: var(--wy-ink-3);
   cursor: pointer;
-  transition: all var(--wy-dur) var(--wy-ease);
+  transition:
+    background var(--wy-dur) var(--wy-ease),
+    color var(--wy-dur) var(--wy-ease),
+    transform var(--wy-dur) var(--wy-spring);
 }
 .icon-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.85);
   color: var(--wy-ink-1);
+  transform: translateY(-2px);
+}
+.icon-btn:active:not(:disabled) {
+  transform: scale(0.94);
 }
 .icon-btn:disabled {
   opacity: 0.35;
@@ -1165,13 +1172,14 @@ onMounted(loadAll)
 .fab {
   position: fixed;
   right: var(--wy-s4);
-  bottom: calc(96px + env(safe-area-inset-bottom));
+  /* 底栏顶沿约在 82px（12px 偏移 + 70px 高），这里留出约 30px 间距 */
+  bottom: calc(112px + env(safe-area-inset-bottom));
   z-index: 30;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 58px;
-  height: 58px;
+  width: 64px;
+  height: 64px;
   border: none;
   border-radius: 50%;
   /* 透明淡绿光玻璃 FAB（与激活胶囊同款，图标用最深墨色） */

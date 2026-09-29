@@ -230,7 +230,7 @@ onMounted(loadTrips)
     </main>
 
     <button class="fab" type="button" aria-label="新建行程" @click="openCreate">
-      <AppIcon name="plus" :size="24" />
+      <AppIcon name="plus" :size="26" />
     </button>
 
     <FormSheet v-model="sheetVisible" :title="editingId === null ? '新建行程' : '编辑行程'">
@@ -323,7 +323,18 @@ onMounted(loadTrips)
   color: var(--wy-ink-2);
   font-size: var(--wy-text-sm);
   cursor: pointer;
-  transition: all var(--wy-dur) var(--wy-ease);
+  transition:
+    transform var(--wy-dur) var(--wy-spring),
+    box-shadow var(--wy-dur) var(--wy-ease),
+    background var(--wy-dur) var(--wy-ease),
+    border-color var(--wy-dur) var(--wy-ease),
+    color var(--wy-dur) var(--wy-ease);
+}
+.chip:hover {
+  transform: translateY(-2px);
+}
+.chip:active {
+  transform: translateY(0) scale(0.96);
 }
 .chip:hover {
   border-color: var(--wy-line-strong);
@@ -428,13 +439,14 @@ onMounted(loadTrips)
   .fab {
     position: fixed;
     right: var(--wy-s4);
-    bottom: calc(96px + env(safe-area-inset-bottom));
+    /* 底栏顶沿约在 82px（12px 偏移 + 70px 高），这里留出约 30px 间距 */
+    bottom: calc(112px + env(safe-area-inset-bottom));
     z-index: 30;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 58px;
-    height: 58px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     /* 透明淡绿光玻璃 FAB（与激活胶囊同款） */
     background: color-mix(in srgb, var(--wy-accent-base) 20%, rgba(255, 255, 255, 0.34));

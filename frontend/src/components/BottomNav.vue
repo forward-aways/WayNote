@@ -102,26 +102,27 @@ onBeforeUnmount(() => {
   transform: translateX(-50%);
   z-index: 40;
   display: flex;
-  gap: 2px;
-  padding: 6px;
+  /* 宽度跟随屏幕（留 28px 边距）并封顶，项目等分：小屏不溢出，大屏不空旷 */
+  width: min(calc(100% - 28px), 400px);
+  gap: 6px;
+  padding: 7px;
   border-radius: var(--wy-r-full);
   box-shadow: var(--wy-float-shadow);
 }
 .indicator {
   position: absolute;
-  top: 6px;
-  bottom: 6px;
+  top: 7px;
+  bottom: 7px;
   left: 0;
   border-radius: var(--wy-r-full);
-  /* 淡雅翡翠玻璃（与侧栏激活态同款，保持两端一致；不用发光） */
+  /* 淡雅翡翠玻璃（配方见 tokens 的 --wy-nav-active-*；与侧栏同款） */
   background:
     var(--wy-sheen-soft),
-    color-mix(in srgb, var(--wy-accent-base) 14%, rgba(255, 255, 255, 0.74));
-  border: 1px solid rgba(255, 255, 255, 0.5);
+    var(--wy-nav-active-bg);
+  border: 1px solid var(--wy-nav-active-rim);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 0 0 1px color-mix(in srgb, var(--wy-accent-base) 14%, transparent),
-    0 6px 16px rgba(6, 60, 46, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    var(--wy-nav-active-glow);
 }
 /* 首帧直接落位，之后启用弹簧滑动（非线性：惯性 + 轻微回弹落定） */
 .indicator.ready {
@@ -132,12 +133,13 @@ onBeforeUnmount(() => {
 .nav-item {
   position: relative;
   z-index: 1;
+  flex: 1;
+  min-width: 0;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  min-width: 62px;
-  padding: 7px 10px 5px;
+  gap: 3px;
+  padding: 9px 12px 6px;
   border-radius: var(--wy-r-full);
   /* 通透悬浮层：文字用最深墨色 */
   color: var(--wy-ink-1);
@@ -157,11 +159,25 @@ onBeforeUnmount(() => {
 .bottom-nav:not(.measured) .nav-item.active {
   background:
     var(--wy-sheen-soft),
-    color-mix(in srgb, var(--wy-accent-base) 14%, rgba(255, 255, 255, 0.74));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    var(--wy-nav-active-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* 放大镜：激活项被"放大"（纯几何放大，字形不变形） */
+.nav-item > :deep(svg),
+.nav-item > span {
+  transition: transform var(--wy-dur) var(--wy-spring);
+}
+.nav-item.active > span {
+  transform: scale(1.12);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.nav-item.active > :deep(svg) {
+  transform: scale(1.14);
 }
 .nav-label {
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.15;
   letter-spacing: 0.5px;
 }
 @media (min-width: 768px) {

@@ -173,6 +173,7 @@ function onCommand(command: string) {
 }
 .icon-btn:hover {
   background: rgba(255, 255, 255, 0.85);
+  transform: translateY(-2px);
 }
 .icon-btn:active {
   transform: scale(0.94);

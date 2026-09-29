@@ -74,10 +74,25 @@
   background-color: rgba(6, 40, 32, 0.3);
 }
 
-/* 按钮：宝石高光 + 光晕 */
+/* 按钮：hover 浮起 + 按压回弹（统一手感，与卡片同一套"浮起"语言） */
 .el-button {
   font-weight: 600;
   letter-spacing: 0.2px;
+  transition:
+    transform var(--wy-dur) var(--wy-spring),
+    box-shadow var(--wy-dur) var(--wy-ease),
+    filter var(--wy-dur) var(--wy-ease),
+    background-color var(--wy-dur) var(--wy-ease),
+    border-color var(--wy-dur) var(--wy-ease),
+    color var(--wy-dur) var(--wy-ease);
+}
+
+.el-button:hover {
+  transform: translateY(-2px);
+}
+
+.el-button:active {
+  transform: translateY(0) scale(0.97);
 }
 
 /* 主按钮 = 宝石表面 + 宝石面墨色（亮翡翠上的文字由派生算法保证 ≥4.5:1）

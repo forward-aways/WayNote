@@ -210,15 +210,24 @@ button {
 }
 
 /* ===== 动效 ===== */
+/* 页面切换：快速淡出 + 弹簧浮入（与卡片/按钮同一套"浮起"语言） */
 .wy-page-enter-active {
   transition:
-    opacity var(--wy-dur) var(--wy-ease),
-    transform var(--wy-dur) var(--wy-ease);
+    opacity 220ms var(--wy-ease),
+    transform 420ms var(--wy-spring);
 }
 
 .wy-page-enter-from {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(14px) scale(0.992);
+}
+
+.wy-page-leave-active {
+  transition: opacity 140ms var(--wy-ease);
+}
+
+.wy-page-leave-to {
+  opacity: 0;
 }
 
 @keyframes wy-rise {
@@ -232,8 +241,10 @@ button {
   }
 }
 
+/* 入场用 backwards（不是 both/forwards）：
+   both 会让末帧 transform 永久生效，动画声明优先级高于普通声明 → 会锁死 hover/active 的浮起动效 */
 .wy-rise {
-  animation: wy-rise 340ms var(--wy-spring) both;
+  animation: wy-rise 340ms var(--wy-spring) backwards;
 }
 
 /* 极光光斑漂移（L1 光晕层；reduced-motion 下全局关闭） */

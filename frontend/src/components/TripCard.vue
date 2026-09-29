@@ -110,13 +110,13 @@ function onCommand(command: string) {
     box-shadow var(--wy-dur) var(--wy-ease);
 }
 .trip-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-5px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
     var(--wy-float-shadow);
 }
 .trip-card:active {
-  transform: translateY(-1px) scale(0.995);
+  transform: translateY(0) scale(0.985);
 }
 .dest-dot {
   width: 8px;

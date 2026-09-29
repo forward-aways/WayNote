@@ -104,10 +104,10 @@ const FEATURES = [
 }
 .dot {
   fill: var(--wy-primary);
-  animation: wy-rise 400ms var(--wy-spring) 900ms both;
+  animation: wy-rise 400ms var(--wy-spring) 900ms backwards;
 }
 .pin {
-  animation: wy-rise 460ms var(--wy-spring) 1s both;
+  animation: wy-rise 460ms var(--wy-spring) 1s backwards;
 }
 .pin path {
   fill: var(--wy-primary);

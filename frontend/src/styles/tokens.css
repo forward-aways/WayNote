@@ -71,6 +71,20 @@
   --wy-glass-veil-bg: color-mix(in srgb, var(--wy-accent-base) 3%, rgba(255, 255, 255, 0.26));
   --wy-glass-veil-blur: 20px;
 
+  /* 导航激活态（淡雅翡翠玻璃）：主题色染 30% + 白 55%。
+     教训：早期用 12% / 74%，叠上侧栏自身的高不透明度后整体偏白，看不出翡翠色 */
+  --wy-nav-active-bg: color-mix(in srgb, var(--wy-accent-base) 30%, rgba(255, 255, 255, 0.55));
+  --wy-nav-active-rim: color-mix(in srgb, var(--wy-accent-base) 24%, rgba(255, 255, 255, 0.5));
+  --wy-nav-active-ring: color-mix(in srgb, var(--wy-accent-base) 20%, transparent);
+  /* 激活块发光（侧栏 / 底栏共用）：内发光 + 贴边光圈 + 近距柔光 + 向下外发光。
+     半径刻意压在 12px 附近 = 侧栏内边距，避免被 overflow 裁出"光被切断"的硬边。
+     强度：用户反馈"太强"后回收约 40%（42/30/22 → 26/18/14），保留发光但不再抢戏 */
+  --wy-nav-active-glow:
+    inset 0 0 12px color-mix(in srgb, var(--wy-accent-base) 14%, transparent),
+    0 0 0 1px var(--wy-nav-active-ring),
+    0 0 10px color-mix(in srgb, var(--wy-accent-base) 26%, transparent),
+    0 5px 16px color-mix(in srgb, var(--wy-accent-base) 18%, transparent);
+
   /* 液态玻璃：镜面高光渐变（左上亮 → 中段极淡 → 右下回光） */
   --wy-sheen: linear-gradient(
     135deg,
