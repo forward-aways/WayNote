@@ -27,3 +27,14 @@
 - `alembic.ini` 不得写入非 ASCII 字符（Windows GBK 历史坑；Linux 无此问题，但保持纪律）。
 - 安全自查见 `DEPLOY.md` 第 13 节：8000 端口不对外、`.env` 600、`TRUSTED_PROXY_IPS` 只填 `127.0.0.1`、按需关闭注册。
 - 本 ADR 不排除后续引入 Docker Compose（多环境一致性诉求出现时再评估）。
+
+## 实测修订（2026-09-30，腾讯云轻量 · Ubuntu 24.04）
+
+实际部署中修正了以下几条（以 `deploy/` 目录下的文件为准）：
+
+1. **端口规划（与同机既有服务共存）**：8000 已被同机其它应用占用、8080 已被既有 nginx 站点占用 → waynote 后端改用 **8010**、对外站点用 **8090**；部署前用 `ss -ltnp` 确认空闲。
+2. **不建系统账号、不用系统日志目录**：以部署者本人（`ubuntu`）运行，代码在 `~/ai-project/WayNote`，日志写项目内 `backend/logs`（代码自动创建）——原方案里的 `useradd` / `chown /var/log/*` 全部取消。
+3. **依赖走 uv**：`uv sync --frozen --no-dev` + `uv run alembic upgrade head`（`uv run` 自动定位 `.venv`，避免手拼路径）；`deploy/requirements.txt` 保留作为"没有 uv"时的 pip 兜底。
+4. **前端一律本地构建**：服务器 Node 20 不满足项目要求（`^22.18.0 || >=24.12.0`），且 2G 内存构建风险高 → 本地 build 后 `scp` 上传 `dist`。
+5. **家目录权限坑（表现为 500）**：nginx worker 无法进入 `/home/ubuntu`（默认没有 `o+x`）→ `stat() ... Permission denied` → `try_files` 兜底触发 `rewrite or internal redirection cycle` → 500。修法：`sudo chmod o+x /home/ubuntu`；或把 `dist` 放到 `/var/www/waynote`。排查用 `namei -l <路径>`。
+6. **站点文件放在既有 nginx 布局的同一目录**（实测为 `/etc/nginx/sites-enabled/`），用独立端口与既有站点共存，不动默认站点。
