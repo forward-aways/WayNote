@@ -123,15 +123,49 @@ sudo chmod o+x /home/ubuntu
 浏览器打开 `http://<服务器IP>:8090/`（云控制台/防火墙放行 8090）。
 这个站点与同机既有站点**互不影响**（不同端口、不同 server 块）。
 
-## 8. 以后升级
+## 8. 以后更新
 
-```bash
-cd /home/ubuntu/ai-project/WayNote && git pull
-cd backend && uv run alembic upgrade head && cd ..
-sudo systemctl restart waynote
+**服务器不要再用 `git pull`**：这台机器在国内直连 `github.com` 会被 TLS 重置
+（`fatal: unable to access ... GnuTLS recv error (-110): The TLS connection was non-properly terminated.`），
+取代码改成「本地打包 → 送进服务器」。
+
+### 8.1 后端 / 整仓代码更新
+
+```powershell
+# 本地（Windows PowerShell，仓库根目录）
+git bundle create waynote.bundle main
+scp waynote.bundle ubuntu@<服务器IP>:/tmp/
 ```
 
-前端有改动时：本地重新 `npm run build` → `scp` → 覆盖 `frontend/dist`（Nginx 不用重启）。
+```bash
+# 服务器
+bash /home/ubuntu/ai-project/WayNote/deploy/update.sh /tmp/waynote.bundle
+```
+
+`deploy/update.sh` 依次做四件事：应用代码（`git fetch` bundle + 只允许快进合并）→
+`uv sync --frozen --no-dev`（Python 工程根在**仓库根**：`pyproject.toml`/`uv.lock`/`.venv` 都在那）→
+`backend/` 下 `uv run alembic upgrade head` → 重启 `waynote` 并打健康检查。
+不带参数运行则只做后三步（代码已更新时用）。
+
+### 8.2 前端更新（本地构建，服务器不构建）
+
+```powershell
+# 本地：构建 + 上传（先清服务器上的旧临时目录，避免 scp 套成 /tmp/dist/dist）
+cd frontend; npm run build
+ssh ubuntu@<服务器IP> 'rm -rf /tmp/dist'
+scp -r dist ubuntu@<服务器IP>:/tmp/
+```
+
+```bash
+# 服务器：备份现有 dist → 覆盖 → 自检（Nginx 不用重启）
+cd /home/ubuntu/ai-project/WayNote/frontend
+cp -r dist "dist.bak.$(date +%Y%m%d-%H%M%S)"
+rsync -a --delete /tmp/dist/ dist/
+md5sum dist/index.html        # 与本地 Get-FileHash -Algorithm MD5 .\dist\index.html 对照
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8090/
+```
+
+回滚：`rm -rf dist && cp -r dist.bak.<时间戳> dist`
 
 ## 9. 备份（可选）
 
