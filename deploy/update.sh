@@ -47,8 +47,19 @@ uv run --no-sync alembic current
 
 echo "==> 4/4 重启服务并自检"
 sudo systemctl restart waynote
-sleep 2
-systemctl is-active waynote
-curl -fsS http://127.0.0.1:8010/api/v1/health
+sleep 1
+printf '  systemd: '
+systemctl is-active waynote || true
+printf '  健康检查: '
+# 重启后 uvicorn 要几秒才开始监听，轮询（最多 ~20s）
+for _ in $(seq 1 20); do
+  if curl -fsS -m 3 http://127.0.0.1:8010/api/v1/health; then
+    echo
+    echo "==> 完成"
+    exit 0
+  fi
+  sleep 1
+done
 echo
-echo "==> 完成"
+echo "健康检查超时（20s）——看日志：sudo journalctl -u waynote -n 50 --no-pager"
+exit 1
