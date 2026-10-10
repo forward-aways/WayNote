@@ -1,0 +1,15 @@
+# 途笺 WayNote · 过期邮箱验证码清理
+#
+# 安装：
+#   sudo cp /home/ubuntu/ai-project/WayNote/deploy/waynote-cleanup.cron /etc/cron.d/waynote-cleanup
+#   sudo chmod 644 /etc/cron.d/waynote-cleanup
+#
+# 为什么需要：email_codes 只增不减；"过期"只是校验不通过，行仍留在表里（见 ADR-20261009 §6.10）。
+# 为什么删 30 天前的行是安全的：验证码 TTL 只有 10 分钟，30 天前的行必然是终态
+# （已消费 / 已过期 / 已作废），删掉不影响任何可用验证码，也不影响审计窗口内的排查。
+#
+# 为什么用系统 cron 而不是应用启动时清：启动路径越短越好；多实例部署时也不会 N 个实例同时清。
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+30 4 * * * postgres psql -d waynote -c "DELETE FROM email_codes WHERE created_at < now() - interval '30 days';" >/dev/null 2>&1

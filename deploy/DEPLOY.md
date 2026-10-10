@@ -181,6 +181,20 @@ EOF
 
 恢复：`gunzip -c .../waynote-日期.sql.gz | psql "postgresql://waynote:密码@127.0.0.1:5432/waynote"`
 
+**过期验证码清理**（建议开，一行 cron；`deploy/waynote-cleanup.cron`）：
+
+```bash
+sudo cp /home/ubuntu/ai-project/WayNote/deploy/waynote-cleanup.cron /etc/cron.d/waynote-cleanup
+sudo chmod 644 /etc/cron.d/waynote-cleanup
+systemctl is-active cron
+```
+
+每天 04:30 删除 30 天前的 `email_codes` 行（验证码 TTL 仅 10 分钟，旧行必然是终态）。手动核对：
+
+```bash
+sudo -u postgres psql -d waynote -c "SELECT count(*) AS rows, min(created_at) FROM email_codes;"
+```
+
 ## 10. 排障（实测踩过的都在这里）
 
 | 现象 | 原因 / 处理 |
