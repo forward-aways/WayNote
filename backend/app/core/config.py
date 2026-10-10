@@ -57,5 +57,13 @@ class Settings(BaseSettings):
     def mail_from(self) -> str:
         return self.smtp_from or self.smtp_user
 
+    # 应用层加固（见 .deepcode/ADR-20261010-Waynote-auth-rate-limit.md）
+    # 生产默认关文档：/docs /redoc /openapi.json 是未鉴权的接口地图（本地开发在 .env 里设 true）
+    docs_enabled: bool = False
+    # 密码登录失败频控：IP 维度挡单点暴力，邮箱维度挡分布式针对单账号（只对失败记账）
+    login_max_failures_per_ip: int = 10
+    login_max_failures_per_email: int = 5
+    login_failure_window_seconds: int = 300
+
 
 settings = Settings()

@@ -21,6 +21,7 @@ from app.core.email_code import CodeInvalid, RateLimited
 from app.core.logging import get_logger
 from app.core.mailer import MailerError
 from app.core.net import parse_trusted_proxies, resolve_client_ip
+from app.core.ratelimit import SlidingWindowLimiter
 from app.core.security import create_access_token, hash_password, verify_password
 from app.db.session import get_db
 from app.models.user import User
@@ -39,6 +40,37 @@ from app.schemas.user import (
 
 log = get_logger("api.auth")
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# 密码登录失败频控（见 .deepcode/ADR-20261010-Waynote-auth-rate-limit.md）：
+# 只对"失败"记账（成功登录无感）；判定先 peek 再校验，已超限的请求不白做 bcrypt。
+_LOGIN_LIMITER = SlidingWindowLimiter()
+
+
+def reset_login_rate_limit_state() -> None:
+    """测试用：清空登录失败计数（生产无需调用）。"""
+    _LOGIN_LIMITER.reset()
+
+
+def _login_limits(email: str) -> tuple[tuple[str, int], ...]:
+    return ((f"email:{email}", settings.login_max_failures_per_email),)
+
+
+def _login_blocked_for(ip: str, email: str) -> int:
+    """只读检查两个维度，返回建议等待秒数（0=未限流）。"""
+    keys = ((f"ip:{ip}", settings.login_max_failures_per_ip), *_login_limits(email))
+    for key, limit in keys:
+        decision = _LOGIN_LIMITER.peek(
+            key, limit=limit, window_seconds=settings.login_failure_window_seconds
+        )
+        if not decision.allowed:
+            return decision.retry_after_seconds
+    return 0
+
+
+def _record_login_failure(ip: str, email: str) -> None:
+    keys = ((f"ip:{ip}", settings.login_max_failures_per_ip), *_login_limits(email))
+    for key, limit in keys:
+        _LOGIN_LIMITER.hit(key, limit=limit, window_seconds=settings.login_failure_window_seconds)
 
 
 @lru_cache(maxsize=8)
@@ -96,10 +128,25 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenOut)
-def login(data: UserLogin, db: Session = Depends(get_db)):
-    user = _find_user(db, codes.normalize_email(data.email))
+def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
+    email = codes.normalize_email(data.email)
+    ip = _client_ip(request)
+
+    # 频控先行：已超限的请求直接 429，不做 bcrypt（见 ADR-20261010 §3.1）
+    blocked = _login_blocked_for(ip, email)
+    if blocked > 0:
+        log.warning(
+            "密码登录被限流 email=%s", data.email, extra={"event": "auth.login.rate_limited"}
+        )
+        raise HTTPException(
+            status_code=429,
+            detail=f"尝试过于频繁，请 {blocked} 秒后再试；也可以直接用「验证码登录」",
+        )
+
+    user = _find_user(db, email)
     # 统一话术：不区分"邮箱不存在 / 密码错 / 免密账号"（不变量 I5），但给出可行动的提示
     if not user or not user.password_hash or not verify_password(data.password, user.password_hash):
+        _record_login_failure(ip, email)
         log.warning("登录失败 email=%s", data.email, extra={"event": "auth.login.failed"})
         raise HTTPException(
             status_code=400,

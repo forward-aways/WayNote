@@ -31,15 +31,27 @@ class SlidingWindowLimiter:
         self._max_keys = max_keys
         self._hits: dict[str, list[float]] = {}
 
-    def hit(self, key: str, *, limit: int, window_seconds: int) -> LimitDecision:
-        """记录一次命中并返回判定；超限时不写入（保持计数不膨胀）。"""
+    def peek(self, key: str, *, limit: int, window_seconds: int) -> LimitDecision:
+        """只读判定（不记账）。
+
+        用途：先拦掉已超限的请求，避免为它们白做昂贵校验（如 bcrypt）；
+        与 hit 判据一致，区别只在"是否写入"。
+        """
         now = time.monotonic()
         stamps = [stamp for stamp in self._hits.get(key, []) if now - stamp < window_seconds]
         if len(stamps) >= limit:
-            self._hits[key] = stamps
             oldest = min(stamps)
             wait = int(window_seconds - (now - oldest)) + 1
             return LimitDecision(allowed=False, retry_after_seconds=max(1, wait))
+        return LimitDecision(allowed=True)
+
+    def hit(self, key: str, *, limit: int, window_seconds: int) -> LimitDecision:
+        """记录一次命中并返回判定；超限时不写入（保持计数不膨胀）。"""
+        decision = self.peek(key, limit=limit, window_seconds=window_seconds)
+        if not decision.allowed:
+            return decision
+        now = time.monotonic()
+        stamps = [stamp for stamp in self._hits.get(key, []) if now - stamp < window_seconds]
         stamps.append(now)
         self._hits[key] = stamps
         if len(self._hits) > self._max_keys:

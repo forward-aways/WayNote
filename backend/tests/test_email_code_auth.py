@@ -18,6 +18,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 import app.core.email_code as email_code_module
+from app.api.v1.auth import reset_login_rate_limit_state
 from app.core.config import settings
 from app.core.mailer import MailerError
 from app.core.security import hash_password
@@ -30,8 +31,12 @@ PASSWORD = "s3cret-123"
 @pytest.fixture(autouse=True)
 def _reset_limits() -> Iterator[None]:
     email_code_module.reset_rate_limit_state()
+    # 登录失败频控是另一套桶（见 ADR-20261010）：本文件里有若干"故意失败"的登录，
+    # 必须一并清零，避免跨用例互相污染
+    reset_login_rate_limit_state()
     yield
     email_code_module.reset_rate_limit_state()
+    reset_login_rate_limit_state()
 
 
 @pytest.fixture()

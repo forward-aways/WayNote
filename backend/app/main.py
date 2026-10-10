@@ -14,7 +14,19 @@ from app.api.v1 import auth, client_logs, places, trip_days, trips
 setup_logging(settings)
 log = get_logger("app")
 
-app = FastAPI(title=settings.app_name)
+
+def _docs_kwargs(enabled: bool) -> dict[str, str | None]:
+    """生产不注册 API 文档路由（见 .deepcode/ADR-20261010-Waynote-auth-rate-limit.md）。
+
+    文档 = 未鉴权的接口地图，属于侦察面；用"不注册"而不是"加鉴权遮挡"。
+    本地开发在 backend/.env 里设 DOCS_ENABLED=true 即可照旧访问 /docs。
+    """
+    if enabled:
+        return {}
+    return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+
+
+app = FastAPI(title=settings.app_name, **_docs_kwargs(settings.docs_enabled))
 
 # 请求上下文 + 访问日志（纯 ASGI，见 core/middleware.py）
 app.add_middleware(
