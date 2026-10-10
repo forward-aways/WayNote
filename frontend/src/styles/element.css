@@ -223,9 +223,37 @@
   border-radius: var(--wy-r-full);
 }
 
+/* 下拉菜单：形状与玻璃语言对齐（用户反馈"悬停形状奇怪"）
+   问题：EP 默认是「面板 14px 圆角 + 菜单项方角、5px 16px 贴边通栏高亮」——圆角面板里塞一条方角通栏，形状不搭。
+   现在：面板 16px、菜单项 10px —— 同心圆角（内圆角 = 外圆角 − 内边距 6px），高亮成为与面板同心的胶囊条；
+   分隔线随之内缩，不再贴边。 */
+.el-dropdown__popper.el-popper {
+  border-radius: 16px;
+  border-color: var(--wy-line);
+}
+
+.el-dropdown-menu {
+  border-radius: 16px;
+  padding: 6px;
+  --el-dropdown-menuItem-hover-fill: var(--wy-primary-weak);
+  --el-dropdown-menuItem-hover-color: var(--wy-primary-strong);
+}
+
+.el-dropdown-menu__item {
+  border-radius: 10px;
+  padding: 8px 12px;
+  color: var(--wy-ink-2);
+}
+
+.el-dropdown-menu__item:not(.is-disabled):hover,
 .el-dropdown-menu__item:not(.is-disabled):focus {
-  background: var(--wy-primary-weak);
+  background-color: var(--wy-primary-weak);
   color: var(--wy-primary-strong);
+}
+
+.el-dropdown-menu__item--divided {
+  margin: 6px 4px;
+  border-top-color: var(--wy-line);
 }
 
 /* 表单标签 */

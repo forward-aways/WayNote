@@ -153,7 +153,8 @@
   --wy-user-bg-fallback: linear-gradient(160deg, #d9f2e6, #d8f1ee 45%, #dfe8fd);
   --wy-scrim: linear-gradient(180deg, rgba(242, 248, 245, 0.62), rgba(242, 248, 245, 0.42));
 
-  /* 预设背景（外观设置中的 6 组） */
+  /* 预设背景（外观设置中的 7 组；纯白=最干净的底，留白时不与任何主题色抢） */
+  --wy-bg-preset-white: #ffffff;
   --wy-bg-preset-aurora: linear-gradient(160deg, #d9f2e6, #d8f1ee 45%, #dfe8fd);
   --wy-bg-preset-emerald: linear-gradient(160deg, #d7f0e2, #a9e4c9 60%, #7ed3b5);
   --wy-bg-preset-sapphire: linear-gradient(160deg, #e0e9fd, #c8d9fb 55%, #a9c1f7);
@@ -161,8 +162,9 @@
   --wy-bg-preset-amber: linear-gradient(160deg, #fdf1dc, #fbe3b8 55%, #f7cf8d);
   --wy-bg-preset-sunrise: linear-gradient(160deg, #fde7e5, #fdd6c2 50%, #fbe0a8);
 
-  /* 字体：全无衬线 */
-  --wy-font-body: 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', -apple-system,
+  /* 字体：全无衬线。HarmonyOS Sans SC 自托管（拆分版 webfont，见 index.html 与 fetch-fonts.mjs），
+     本机若已安装同名字体则直接用本机的；两者都没有时按下列回退 */
+  --wy-font-body: 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', -apple-system,
     'Segoe UI', sans-serif;
   --wy-font-num: 'Bahnschrift', 'DIN Alternate', 'Segoe UI', ui-monospace, monospace;
 

@@ -8,6 +8,7 @@ export interface BackgroundPreset {
 }
 
 export const BACKGROUND_PRESETS: readonly BackgroundPreset[] = [
+  { id: 'white', name: '纯白', cssVar: 'var(--wy-bg-preset-white)' },
   { id: 'aurora', name: '极光', cssVar: 'var(--wy-bg-preset-aurora)' },
   { id: 'emerald', name: '翡翠', cssVar: 'var(--wy-bg-preset-emerald)' },
   { id: 'sapphire', name: '蓝宝石', cssVar: 'var(--wy-bg-preset-sapphire)' },

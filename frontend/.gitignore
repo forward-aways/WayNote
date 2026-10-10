@@ -37,3 +37,7 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# 自托管字体（HarmonyOS Sans SC 拆分版，约 9.5MB，不入库）
+# 获取：node scripts/fetch-fonts.mjs（见 deploy/DEPLOY.md）
+/public/fonts/
