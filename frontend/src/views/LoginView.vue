@@ -155,6 +155,7 @@ async function onSubmitCode() {
             placeholder="6 位数字"
           />
           <el-button
+            class="wy-btn-soft"
             size="large"
             :disabled="seconds > 0"
             :loading="sending"

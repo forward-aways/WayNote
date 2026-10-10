@@ -88,11 +88,18 @@ async function onSubmit() {
             name="code"
             placeholder="6 位数字"
           />
-          <el-button size="large" :disabled="seconds > 0" :loading="sending" @click="onSendCode">
+          <el-button
+            class="wy-btn-soft"
+            size="large"
+            :disabled="seconds > 0"
+            :loading="sending"
+            @click="onSendCode"
+          >
             {{ seconds > 0 ? `重新获取 ${seconds}s` : '获取验证码' }}
           </el-button>
         </div>
       </el-form-item>
+      <p class="code-hint">先点「获取验证码」，把收到的 6 位数字填进来（10 分钟内有效）</p>
       <el-form-item label="昵称（可选）">
         <el-input
           v-model="name"
@@ -137,6 +144,12 @@ async function onSubmit() {
 .code-row :deep(.el-button) {
   flex-shrink: 0;
   padding: 0 var(--wy-s4);
+}
+.code-hint {
+  margin: calc(var(--wy-s2) * -1) 0 var(--wy-s4);
+  color: var(--wy-ink-3);
+  font-size: var(--wy-text-xs);
+  line-height: 1.6;
 }
 .form-error {
   margin-bottom: var(--wy-s4);

@@ -267,6 +267,7 @@ onMounted(() => {
               placeholder="6 位数字"
             />
             <el-button
+              class="wy-btn-soft"
               size="large"
               :disabled="pwSeconds > 0"
               :loading="pwSending"

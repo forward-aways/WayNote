@@ -127,6 +127,33 @@
   opacity: 0.6;
 }
 
+/* 次级动作按钮（「获取验证码」这类"必做但非主按钮"的动作）：
+   淡翡翠弱底 + 深色文字，同样**无描边** —— 位置感由底色表达，不靠边框；
+   与主按钮共用同一套浮起/按压手感（基础 .el-button 已给）。
+   为什么需要它：默认 el-button 会保留 element-plus 的 1px 描边 + 白底，
+   在浅色玻璃上会被读成"禁用/次要、可跳过"，导致用户直接点主按钮后被报错拦住。 */
+.el-button.wy-btn-soft {
+  background-color: var(--wy-primary-weak);
+  border-color: transparent;
+  color: var(--wy-primary-strong);
+}
+
+.el-button.wy-btn-soft:hover,
+.el-button.wy-btn-soft:focus-visible {
+  background-color: color-mix(in srgb, var(--wy-primary-weak) 76%, var(--wy-jade));
+  border-color: transparent;
+  color: var(--wy-primary-strong);
+}
+
+.el-button.wy-btn-soft.is-disabled,
+.el-button.wy-btn-soft.is-disabled:hover {
+  background-color: var(--wy-primary-weak);
+  border-color: transparent;
+  color: var(--wy-primary-strong);
+  opacity: 0.55;
+  transform: none;
+}
+
 /* 输入类控件：半透明表面 */
 .el-input__wrapper,
 .el-textarea__inner {

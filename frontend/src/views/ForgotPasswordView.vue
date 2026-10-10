@@ -99,7 +99,7 @@ async function onSubmit() {
               name="code"
               placeholder="6 位数字"
             />
-            <el-button size="large" :disabled="seconds > 0" :loading="sending" @click="onSendCode">
+            <el-button class="wy-btn-soft" size="large" :disabled="seconds > 0" :loading="sending" @click="onSendCode">
               {{ seconds > 0 ? `重新获取 ${seconds}s` : '重新获取' }}
             </el-button>
           </div>
