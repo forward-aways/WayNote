@@ -33,8 +33,9 @@
   --el-fill-color-light: var(--wy-bg-soft);
   --el-fill-color-lighter: var(--wy-bg-soft);
 
-  --el-border-radius-base: 14px;
-  --el-border-radius-small: 12px;
+  /* 与 --wy-r-sm 对齐（更圆润，2026-10-10） */
+  --el-border-radius-base: 16px;
+  --el-border-radius-small: 14px;
   --el-font-family: var(--wy-font-body);
   --el-box-shadow-light: var(--wy-shadow-1);
   --el-box-shadow: var(--wy-shadow-2);
@@ -158,6 +159,16 @@
 .el-input__wrapper,
 .el-textarea__inner {
   background-color: rgba(255, 255, 255, 0.82);
+}
+
+/* 输入框 hover/focus 的描边环：Element Plus 把这两个变量定义在组件选择器 .el-input / .el-textarea 上，
+   写在 :root 里压不过它（同权重时源序决定）——必须在这里覆写。
+   默认值是灰（--el-border-color-hover），出现在翡翠玻璃面板上很突兀；统一换成主题色系。
+   2026-10-10 修复"鼠标移到输入框上观感奇怪"。 */
+.el-input,
+.el-textarea {
+  --el-input-hover-border-color: color-mix(in srgb, var(--wy-jade) 55%, transparent);
+  --el-input-focus-border-color: var(--wy-primary);
 }
 
 .el-input__wrapper {

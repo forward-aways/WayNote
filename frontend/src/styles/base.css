@@ -54,10 +54,14 @@ button {
   color: var(--wy-ink-1);
 }
 
+/* 焦点环：只画 outline，**不要在这里改元素的 border-radius**。
+   曾经的写法带 `border-radius: 8px`，会把被聚焦元素的圆角强制成 8px ——
+   输入框/卡片本来有 16~28px 圆角，被覆写成 8px 后与容器圆角不一致，
+   出现"外框一个圆角、内部描边另一个圆角"的双重几何（2026-10-10 修复）。
+   现代浏览器里 outline 会自动跟随元素自身的圆角。 */
 :focus-visible {
   outline: 2px solid var(--wy-primary);
   outline-offset: 2px;
-  border-radius: 8px;
 }
 
 ::-webkit-scrollbar {
