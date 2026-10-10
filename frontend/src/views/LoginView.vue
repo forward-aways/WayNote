@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /** 登录：密码 / 验证码双通道（验证码通道见 .deepcode/ADR-20261009-Waynote-email-code-auth.md） */
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AuthPanel from '@/components/AuthPanel.vue'
 import { sendEmailCode } from '@/api/auth'
@@ -9,9 +10,11 @@ import { useAuthStore } from '@/stores/auth'
 import { apiErrorMessage } from '@/utils/error'
 
 const auth = useAuthStore()
+const route = useRoute()
 const { seconds, start: startCountdown } = useCountdown()
 
-const mode = ref<'password' | 'code'>('password')
+// 支持 /login?mode=code 深链（注册页的「验证码登录」提示直达免密模式）
+const mode = ref<'password' | 'code'>(route.query.mode === 'code' ? 'code' : 'password')
 
 const email = ref('')
 const password = ref('')

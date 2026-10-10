@@ -9,8 +9,9 @@ CODE_FIELD = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
 
 class UserRegister(BaseModel):
     email: EmailStr
-    password: str
-    name: str | None = None
+    # 服务端校验才是权威（前端校验只负责体验）；72 与 bcrypt 的字节上限对齐
+    password: str = Field(min_length=6, max_length=72)
+    name: str | None = Field(default=None, max_length=50)
     # 注册邮箱验证码（purpose=register）：证明邮箱所有权，见 ADR §6.5
     code: str = CODE_FIELD
 

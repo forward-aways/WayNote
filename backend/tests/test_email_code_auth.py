@@ -457,3 +457,30 @@ def test_email_codes_lookup_index_exists(session) -> None:
         )
     ).scalar_one()
     assert count == 1
+
+
+def test_T22_register_input_validation_is_server_side(client, mailbox) -> None:
+    """服务端校验是权威（前端校验只负责体验）：密码长度、昵称长度都在后端拦。
+
+    另外验证顺序性：校验失败发生在业务逻辑之前，因此不会消耗验证码。
+    """
+    email = _email("t22")
+    code = _issue_code(client, mailbox, email, "register")
+
+    too_short = client.post(
+        "/api/v1/auth/register", json={"email": email, "password": "12345", "code": code}
+    )
+    assert too_short.status_code == 422
+
+    too_long_name = client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": PASSWORD, "name": "长" * 51, "code": code},
+    )
+    assert too_long_name.status_code == 422
+
+    # 前两次 422 没有消耗验证码，第三次仍可用
+    ok = client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": PASSWORD, "name": "长" * 50, "code": code},
+    )
+    assert ok.status_code == 201, ok.text

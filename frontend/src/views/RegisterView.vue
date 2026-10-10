@@ -67,7 +67,7 @@ async function onSubmit() {
 <template>
   <AuthPanel title="创建账号" subtitle="下一段旅途，从这里开始">
     <el-form label-position="top" @submit.prevent="onSubmit">
-      <el-form-item label="邮箱">
+      <el-form-item label="邮箱" required>
         <el-input
           v-model="email"
           size="large"
@@ -77,7 +77,7 @@ async function onSubmit() {
           placeholder="you@example.com"
         />
       </el-form-item>
-      <el-form-item label="邮箱验证码">
+      <el-form-item label="邮箱验证码" required>
         <div class="code-row">
           <el-input
             v-model="code"
@@ -104,12 +104,13 @@ async function onSubmit() {
         <el-input
           v-model="name"
           size="large"
+          maxlength="50"
           autocomplete="nickname"
           name="nickname"
           placeholder="旅途中怎么称呼你"
         />
       </el-form-item>
-      <el-form-item label="密码">
+      <el-form-item label="密码" required>
         <el-input
           v-model="password"
           size="large"
@@ -127,6 +128,10 @@ async function onSubmit() {
         注 册
       </el-button>
     </el-form>
+
+    <p class="mode-hint">
+      不想设密码？可以直接用「<router-link to="/login?mode=code">验证码登录</router-link>」——没注册过的邮箱会自动建号，之后在「我的」里设置密码即可。
+    </p>
 
     <p class="form-foot">已有账号？<router-link to="/login">去登录</router-link></p>
   </AuthPanel>
@@ -150,6 +155,12 @@ async function onSubmit() {
   color: var(--wy-ink-3);
   font-size: var(--wy-text-xs);
   line-height: 1.6;
+}
+.mode-hint {
+  margin: var(--wy-s4) 0 0;
+  color: var(--wy-ink-3);
+  font-size: var(--wy-text-xs);
+  line-height: 1.7;
 }
 .form-error {
   margin-bottom: var(--wy-s4);
