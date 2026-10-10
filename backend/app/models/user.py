@@ -17,7 +17,9 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255))
+    # 可空：验证码登录的免密账号没有密码，直到用户主动设置
+    # （见 .deepcode/ADR-20261009-Waynote-email-code-auth.md §6.1）
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -29,3 +31,8 @@ class User(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+    @property
+    def has_password(self) -> bool:
+        """免密账号（验证码登录自动建号）为 False；供 /auth/me 与前端决定「设置/修改密码」。"""
+        return self.password_hash is not None

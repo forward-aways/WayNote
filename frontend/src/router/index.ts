@@ -23,6 +23,12 @@ const router = createRouter({
       meta: { guest: true, title: '注册' },
     },
     {
+      path: '/forgot',
+      name: 'forgot',
+      component: () => import('@/views/ForgotPasswordView.vue'),
+      meta: { guest: true, title: '找回密码' },
+    },
+    {
       path: '/trips',
       name: 'trips',
       component: () => import('@/views/TripsView.vue'),

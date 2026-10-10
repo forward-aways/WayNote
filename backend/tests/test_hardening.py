@@ -88,10 +88,16 @@ def test_registration_switch(monkeypatch: pytest.MonkeyPatch) -> None:
     client = TestClient(app)
 
     monkeypatch.setattr(settings, "allow_registration", False)
-    resp = client.post("/api/v1/auth/register", json={"email": "new@example.com", "password": "123456"})
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={"email": "new@example.com", "password": "123456", "code": "123456"},
+    )
     assert resp.status_code == 403
     assert "关闭" in resp.json()["detail"]
 
     monkeypatch.setattr(settings, "allow_registration", True)
-    resp = client.post("/api/v1/auth/register", json={"email": "not-an-email", "password": "123456"})
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={"email": "not-an-email", "password": "123456", "code": "123456"},
+    )
     assert resp.status_code == 422  # 已放行（未真正写库）

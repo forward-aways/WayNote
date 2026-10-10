@@ -1,13 +1,17 @@
 <script setup lang="ts">
-/** 我的：资料 / 统计 / 外观设置 / 关于 */
+/** 我的：资料 / 统计 / 安全（设置或修改密码）/ 外观设置 / 关于 */
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AppIcon from '@/components/AppIcon.vue'
+import FormSheet from '@/components/FormSheet.vue'
+import { changePassword, sendEmailCode } from '@/api/auth'
 import { listTrips } from '@/api/trips'
+import { useCountdown } from '@/composables/useCountdown'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useAuthStore } from '@/stores/auth'
 import { BACKGROUND_PRESETS } from '@/utils/background'
+import { apiErrorMessage } from '@/utils/error'
 import { formatDateCN } from '@/utils/trip'
 
 const auth = useAuthStore()
@@ -49,6 +53,86 @@ function logout() {
   auth.logout()
   ElMessage.success('已退出登录')
   router.push('/login')
+}
+
+/* ===== 安全：设置 / 修改密码（有密码用旧密码；免密账号用邮箱验证码，purpose=reset）===== */
+const pwOpen = ref(false)
+const pwOld = ref('')
+const pwCode = ref('')
+const pwNew = ref('')
+const pwConfirm = ref('')
+const pwSaving = ref(false)
+const pwSending = ref(false)
+const pwError = ref('')
+const { seconds: pwSeconds, start: pwStartCountdown } = useCountdown()
+
+const hasPassword = computed(() => auth.user?.has_password === true)
+const passwordRowTitle = computed(() => (hasPassword.value ? '修改密码' : '设置密码'))
+const passwordRowSub = computed(() =>
+  hasPassword.value ? '用当前密码验证后更换' : '用邮箱验证码设置一个新密码',
+)
+
+function openPasswordSheet() {
+  pwOld.value = ''
+  pwCode.value = ''
+  pwNew.value = ''
+  pwConfirm.value = ''
+  pwError.value = ''
+  pwOpen.value = true
+}
+
+async function onSendPasswordCode() {
+  pwError.value = ''
+  const email = auth.user?.email
+  if (!email) return
+  pwSending.value = true
+  try {
+    const result = await sendEmailCode(email, 'reset')
+    pwStartCountdown(result.cooldown_seconds)
+    ElMessage.success(result.message)
+  } catch (error: unknown) {
+    pwError.value = apiErrorMessage(error, '验证码发送失败，请稍后重试')
+  } finally {
+    pwSending.value = false
+  }
+}
+
+async function submitPassword() {
+  pwError.value = ''
+  const hadPassword = hasPassword.value
+  if (hadPassword) {
+    if (!pwOld.value) {
+      pwError.value = '请输入当前密码'
+      return
+    }
+  } else if (!/^\d{6}$/.test(pwCode.value)) {
+    pwError.value = '请输入 6 位数字验证码'
+    return
+  }
+  if (pwNew.value.length < 6) {
+    pwError.value = '新密码至少 6 位'
+    return
+  }
+  if (pwNew.value !== pwConfirm.value) {
+    pwError.value = '两次输入的密码不一致'
+    return
+  }
+
+  pwSaving.value = true
+  try {
+    await changePassword(
+      hadPassword
+        ? { new_password: pwNew.value, old_password: pwOld.value }
+        : { new_password: pwNew.value, code: pwCode.value },
+    )
+    await auth.fetchMe() // 刷新 has_password：设置成功后按钮文案变为「修改密码」
+    pwOpen.value = false
+    ElMessage.success(hadPassword ? '密码已更新' : '密码已设置')
+  } catch (error: unknown) {
+    pwError.value = apiErrorMessage(error, '保存失败，请稍后重试')
+  } finally {
+    pwSaving.value = false
+  }
 }
 
 onMounted(() => {
@@ -118,6 +202,17 @@ onMounted(() => {
     </section>
 
     <section class="rows glass-panel">
+      <button type="button" class="row" @click="openPasswordSheet">
+        <span class="row-icon"><AppIcon name="user" :size="17" /></span>
+        <span class="row-main">
+          <span class="row-title">{{ passwordRowTitle }}</span>
+          <span class="row-sub">{{ passwordRowSub }}</span>
+        </span>
+        <AppIcon name="chevron-right" :size="16" />
+      </button>
+    </section>
+
+    <section class="rows glass-panel">
       <div class="row static">
         <span class="row-icon"><AppIcon name="note" :size="17" /></span>
         <span class="row-main">
@@ -145,6 +240,73 @@ onMounted(() => {
       <AppIcon name="logout" :size="16" />
       退出登录
     </button>
+
+    <!-- 设置 / 修改密码：桌面弹窗、移动端抽屉（FormSheet 统一承担两种形态） -->
+    <FormSheet v-model="pwOpen" :title="passwordRowTitle">
+      <el-form label-position="top" @submit.prevent="submitPassword">
+        <el-form-item v-if="hasPassword" label="当前密码">
+          <el-input
+            v-model="pwOld"
+            size="large"
+            type="password"
+            show-password
+            autocomplete="current-password"
+            name="current-password"
+            placeholder="请输入当前密码"
+          />
+        </el-form-item>
+        <el-form-item v-else label="邮箱验证码">
+          <div class="code-row">
+            <el-input
+              v-model="pwCode"
+              size="large"
+              inputmode="numeric"
+              maxlength="6"
+              autocomplete="one-time-code"
+              name="code"
+              placeholder="6 位数字"
+            />
+            <el-button
+              size="large"
+              :disabled="pwSeconds > 0"
+              :loading="pwSending"
+              @click="onSendPasswordCode"
+            >
+              {{ pwSeconds > 0 ? `重新获取 ${pwSeconds}s` : '获取验证码' }}
+            </el-button>
+          </div>
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input
+            v-model="pwNew"
+            size="large"
+            type="password"
+            show-password
+            autocomplete="new-password"
+            name="new-password"
+            placeholder="至少 6 位"
+          />
+        </el-form-item>
+        <el-form-item label="确认新密码">
+          <el-input
+            v-model="pwConfirm"
+            size="large"
+            type="password"
+            show-password
+            autocomplete="new-password"
+            name="confirm-password"
+            placeholder="再输一次"
+          />
+        </el-form-item>
+        <p v-if="pwError" class="form-error" role="alert">{{ pwError }}</p>
+      </el-form>
+      <template #footer>
+        <el-button size="large" @click="pwOpen = false">取消</el-button>
+        <el-button size="large" type="primary" :loading="pwSaving" @click="submitPassword">
+          保存
+        </el-button>
+      </template>
+    </FormSheet>
   </main>
 </template>
 
@@ -315,5 +477,26 @@ button.row:active {
 }
 .logout:active {
   transform: scale(0.98);
+}
+.code-row {
+  display: flex;
+  gap: var(--wy-s2);
+  width: 100%;
+}
+.code-row :deep(.el-input) {
+  flex: 1;
+}
+.code-row :deep(.el-button) {
+  flex-shrink: 0;
+  padding: 0 var(--wy-s4);
+}
+.form-error {
+  margin-bottom: var(--wy-s4);
+  padding: var(--wy-s2) var(--wy-s3);
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 30%, transparent);
+  border-radius: var(--wy-r-sm);
+  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
+  color: var(--el-color-danger);
+  font-size: var(--wy-text-sm);
 }
 </style>

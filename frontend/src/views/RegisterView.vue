@@ -1,21 +1,50 @@
 <script setup lang="ts">
+/** 注册：需要邮箱验证码（证明邮箱归属，见 .deepcode/ADR-20261009-Waynote-email-code-auth.md） */
 import { ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import AuthPanel from '@/components/AuthPanel.vue'
+import { sendEmailCode } from '@/api/auth'
+import { useCountdown } from '@/composables/useCountdown'
 import { useAuthStore } from '@/stores/auth'
 import { apiErrorMessage } from '@/utils/error'
 
 const auth = useAuthStore()
+const { seconds, start: startCountdown } = useCountdown()
 
 const email = ref('')
+const code = ref('')
 const name = ref('')
 const password = ref('')
 const loading = ref(false)
+const sending = ref(false)
 const errorMsg = ref('')
+
+async function onSendCode() {
+  errorMsg.value = ''
+  if (!email.value) {
+    errorMsg.value = '请先填写邮箱'
+    return
+  }
+  sending.value = true
+  try {
+    const result = await sendEmailCode(email.value, 'register')
+    startCountdown(result.cooldown_seconds)
+    ElMessage.success(result.message)
+  } catch (error: unknown) {
+    errorMsg.value = apiErrorMessage(error, '验证码发送失败，请稍后重试')
+  } finally {
+    sending.value = false
+  }
+}
 
 async function onSubmit() {
   errorMsg.value = ''
   if (!email.value || !password.value) {
     errorMsg.value = '请填写邮箱和密码'
+    return
+  }
+  if (!/^\d{6}$/.test(code.value)) {
+    errorMsg.value = '请输入 6 位数字验证码'
     return
   }
   if (password.value.length < 6) {
@@ -24,7 +53,7 @@ async function onSubmit() {
   }
   loading.value = true
   try {
-    await auth.doRegister(email.value, password.value, name.value || undefined)
+    await auth.doRegister(email.value, password.value, name.value || undefined, code.value)
     // 整页跳转：给浏览器密码管理器最强的“注册/登录成功”信号（同 LoginView）
     window.location.assign('/trips')
   } catch (error: unknown) {
@@ -43,10 +72,26 @@ async function onSubmit() {
           v-model="email"
           size="large"
           type="email"
-          autocomplete="email"
-          name="email"
+          autocomplete="username"
+          name="username"
           placeholder="you@example.com"
         />
+      </el-form-item>
+      <el-form-item label="邮箱验证码">
+        <div class="code-row">
+          <el-input
+            v-model="code"
+            size="large"
+            inputmode="numeric"
+            maxlength="6"
+            autocomplete="one-time-code"
+            name="code"
+            placeholder="6 位数字"
+          />
+          <el-button size="large" :disabled="seconds > 0" :loading="sending" @click="onSendCode">
+            {{ seconds > 0 ? `重新获取 ${seconds}s` : '获取验证码' }}
+          </el-button>
+        </div>
       </el-form-item>
       <el-form-item label="昵称（可选）">
         <el-input
@@ -71,13 +116,7 @@ async function onSubmit() {
 
       <p v-if="errorMsg" class="form-error" role="alert">{{ errorMsg }}</p>
 
-      <el-button
-        class="form-submit"
-        type="primary"
-        size="large"
-        native-type="submit"
-        :loading="loading"
-      >
+      <el-button class="form-submit" type="primary" size="large" native-type="submit" :loading="loading">
         注 册
       </el-button>
     </el-form>
@@ -87,6 +126,18 @@ async function onSubmit() {
 </template>
 
 <style scoped>
+.code-row {
+  display: flex;
+  gap: var(--wy-s2);
+  width: 100%;
+}
+.code-row :deep(.el-input) {
+  flex: 1;
+}
+.code-row :deep(.el-button) {
+  flex-shrink: 0;
+  padding: 0 var(--wy-s4);
+}
 .form-error {
   margin-bottom: var(--wy-s4);
   padding: var(--wy-s2) var(--wy-s3);

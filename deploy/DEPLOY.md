@@ -188,5 +188,7 @@ EOF
 | `curl 127.0.0.1:8010/...` 无任何输出 | 服务没跑或端口被占 → `sudo systemctl status waynote`、`sudo ss -ltnp \| grep 8010` |
 | 服务反复重启 | 看 journalctl；常见是单元文件里的 `User`/路径与真实不符 |
 | 接口报 500 / 注册失败 | 迁移没跑 → 第 4 步 |
+| 「获取验证码」返回 **503**「邮件服务未配置」 | `backend/.env` 的 `SMTP_*` 未填 → 见 `.env.example` 的 SMTP 段（163 需生成客户端授权码），改完 `sudo systemctl restart waynote` |
+| 「获取验证码」返回 **502**「邮件发送失败」 | 服务器到发信服务不通或授权码错误 → `sudo journalctl -u waynote -n 30 --no-pager` 看 `auth.email_code.send_failed` |
 | `uv run alembic` 报找不到 / 命令不存在 | 必须在 `backend/` 目录下执行；或先 `uv sync --frozen --no-dev` |
 | 刷新子页面 404 | nginx 里 `try_files $uri $uri/ /index.html` 被删了 |

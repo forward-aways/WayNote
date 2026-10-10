@@ -14,8 +14,24 @@ export const useAuthStore = defineStore('auth', () => {
     await fetchMe()
   }
 
-  async function doRegister(email: string, password: string, name?: string) {
-    const data = await authApi.register({ email, password, name })
+  /** 验证码登录（未注册邮箱自动建号，见 ADR-20261009 §6.5） */
+  async function doLoginWithCode(email: string, code: string) {
+    const data = await authApi.loginWithCode(email, code)
+    token.value = data.access_token
+    localStorage.setItem('access_token', data.access_token)
+    await fetchMe()
+  }
+
+  async function doRegister(email: string, password: string, name?: string, code?: string) {
+    const data = await authApi.register({ email, password, name, code: code ?? '' })
+    token.value = data.access_token
+    localStorage.setItem('access_token', data.access_token)
+    await fetchMe()
+  }
+
+  /** 找回密码：重置成功后直接进入登录态 */
+  async function doResetPassword(email: string, code: string, newPassword: string) {
+    const data = await authApi.resetPassword({ email, code, new_password: newPassword })
     token.value = data.access_token
     localStorage.setItem('access_token', data.access_token)
     await fetchMe()
@@ -36,5 +52,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('access_token')
   }
 
-  return { token, user, doLogin, doRegister, fetchMe, logout }
+  return { token, user, doLogin, doLoginWithCode, doRegister, doResetPassword, fetchMe, logout }
 })

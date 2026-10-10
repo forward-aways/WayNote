@@ -31,5 +31,31 @@ class Settings(BaseSettings):
     trusted_proxy_ips: str = "127.0.0.1,::1"
     allow_registration: bool = True
 
+    # 邮箱验证码与 SMTP（见 .deepcode/ADR-20261009-Waynote-email-code-auth.md §6.4）
+    # 凭据留空时启动不受影响，但发码接口会返回 503（明确失败，不静默降级）
+    smtp_host: str = ""
+    smtp_port: int = 465  # 465=SSL（163/QQ），587=STARTTLS
+    smtp_starttls: bool = False
+    smtp_timeout_seconds: int = 10
+    smtp_user: str = ""
+    smtp_password: str = ""  # 邮箱「客户端授权码」，不是登录密码
+    smtp_from: str = ""  # 留空则用 smtp_user
+    smtp_from_name: str = "途笺 WayNote"
+    email_code_ttl_minutes: int = 10
+    email_code_cooldown_seconds: int = 60
+    email_code_max_attempts: int = 5
+    email_code_per_email_hour: int = 5
+    email_code_per_email_day: int = 10
+    email_code_per_ip_hour: int = 20
+    email_code_global_hour: int = 100
+
+    @property
+    def smtp_configured(self) -> bool:
+        return bool(self.smtp_host and self.smtp_user and self.smtp_password)
+
+    @property
+    def mail_from(self) -> str:
+        return self.smtp_from or self.smtp_user
+
 
 settings = Settings()
