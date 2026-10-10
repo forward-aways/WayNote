@@ -13,7 +13,13 @@
 | 爆破来源 Top1 | 51.89.42.211（2233 次） |
 | `/auth/login` 频控 | **无**（当时可无限次试密码） |
 | bcrypt cost=12 | 单连接约 4 次/秒；分布式/字典攻击不受限 |
-| FastAPI 默认文档 | `/docs` `/redoc` `/openapi.json` 线上实测 **200**（未鉴权的接口地图） |
+| FastAPI 默认文档 | 直连 API 时 `/docs` `/redoc` `/openapi.json` 可用 → 未鉴权的接口地图 |
+
+> **更正（实现期实测）**：上线前审计曾把"`http://<IP>:8090/docs` 返回 200"当作文档暴露，实测发现那是
+> **nginx 的 SPA 回退**（`try_files … /index.html`，Content-Type `text/html`）——nginx 只把 `/api` 转发给后端，
+> 因此 FastAPI 文档**从未**通过 8090 暴露。
+> 本项仍然保留：它防的是**配置漂移**（将来若有人把 `/` 也代理给后端、或调整前缀、或后端直接监听公网），
+> 以及"新环境默认安全"（secure by default）这两件事。
 
 > 结论：机器已被扫描器纳入名单；应用层当时唯一的上限是 bcrypt 的算力成本。
 
