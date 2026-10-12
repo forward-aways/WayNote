@@ -166,7 +166,10 @@
      本机若已安装同名字体则直接用本机的；两者都没有时按下列回退 */
   --wy-font-body: 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', -apple-system,
     'Segoe UI', sans-serif;
-  --wy-font-num: 'Bahnschrift', 'DIN Alternate', 'Segoe UI', ui-monospace, monospace;
+  /* 数字与正文同源（2026-10-12 用户选择"彻底"方案：全平台一致观感）。
+     原栈 'Bahnschrift','DIN Alternate','Segoe UI',ui-monospace 在 Android 会落到 monospace（数字变等宽体）；
+     现直接复用正文栈。`.wy-num` 仍保留 tabular-nums（见 base.css），等宽对齐依赖字体默认数字宽度 */
+  --wy-font-num: var(--wy-font-body);
 
   /* 字号 */
   --wy-text-xs: 12px;
