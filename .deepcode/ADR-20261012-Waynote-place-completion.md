@@ -214,3 +214,23 @@ export function progressOf(items: readonly { done: boolean }[]): Progress | null
 - 在途禁用窗口（防连点）约 <100ms；快速双击的第二次点击会被忽略（设计行为）。
 - 后续可选：足迹视图（按 done_at）、旅行结束自动归档勾选、导出已完成清单——均不需要改数据模型。
 
+### 11.4 上线记录（2026-10-12）
+
+- 提交：`7fff166`（20 files, +973/−20；含本 ADR、迁移、测试、前端与令牌修正）。
+- 服务器：`deploy/update.sh` 一键完成（代码 ff → uv sync → **迁移 `9d1f4c7b2a58 → c4a7d92b6e15` 已应用** → 重启 → 健康检查 `{"status":"ok","database":"connected"}`）。
+- 前端 dist：md5 与本地一致（`342442cffb76ad4abad2ae1d5a5a1765`）；资产确认含 `wy-progress`（CSS）与「全部完成」（TripDetailView chunk）。
+- 线上冒烟：站点 200；`/api/v1/trips` 与新批量端点未鉴权访问均 401（鉴权正常）。
+- 待办：GitHub 推送待代理恢复（本地领先 origin 1 个提交）。
+
+## 12. 防复发机制落地清单（对照 §7）
+
+| 机制 | 落地位置 | 状态 |
+|---|---|---|
+| DB CHECK（I1 兜底） | `ck_places_done_at_consistent`（迁移 c4a7d92b6e15） | ✅ 已上线 + 反例测试 |
+| 回归测试锁口径 | `tests/test_place_done.py`（7 条）+ `test_trips_list_counts.py` 扩展 | ✅ 65 全绿 |
+| 前端单一口径 | `utils/progress.ts`（0 分母/夹取语义内聚） | ✅ E2E 覆盖 |
+| 唯一状态迁移入口 | `models/place.py::apply_done_state`（单点 + 批量共用） | ✅ |
+| 视觉契约守卫 | `check:tokens`（拦下 2 处违规后修正） | ✅ |
+| 文档沉淀 | 本 ADR（含否决方案与边界，防"天级双写"回归） | ✅ |
+
+
