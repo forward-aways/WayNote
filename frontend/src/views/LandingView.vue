@@ -312,7 +312,13 @@ onBeforeUnmount(() => observer?.disconnect())
       </div>
     </section>
 
-    <footer class="landing-foot">途笺 Waynote · 让每次出发更从容</footer>
+    <footer class="landing-foot">
+      <p class="foot-slogan">途笺 Waynote · 让每次出发更从容</p>
+      <!-- ICP 备案号：工信部要求悬挂并链接至备案官网首页 -->
+      <a class="foot-icp" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">
+        辽ICP备2026015937号-2
+      </a>
+    </footer>
   </div>
 </template>
 
@@ -913,6 +919,20 @@ onBeforeUnmount(() => observer?.disconnect())
   font-size: var(--wy-text-xs);
   letter-spacing: 1px;
   text-align: center;
+}
+.foot-slogan {
+  margin: 0;
+}
+/* ICP 备案号：低饱和墨绿（对比度 ≥4.5:1），悬停转主题色（下划线由 base.css 的 a:hover 提供） */
+.foot-icp {
+  display: inline-block;
+  margin-top: var(--wy-s1);
+  color: var(--wy-ink-3);
+  letter-spacing: 0.3px;
+  transition: color var(--wy-dur) var(--wy-ease);
+}
+.foot-icp:hover {
+  color: var(--wy-primary-strong);
 }
 
 /* 无障碍：减少动态效果时，跳过整段编排，直接呈现终态 */
