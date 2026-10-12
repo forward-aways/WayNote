@@ -45,7 +45,12 @@ a:hover {
   text-decoration: underline;
 }
 
-button {
+/* 表单控件默认不继承字体（浏览器用系统 UI 字体渲染）：
+   统一到全站字体，消除"输入框里是另一套字体"的割裂（2026-10-12 用户上报后排查修复） */
+button,
+input,
+textarea,
+select {
   font-family: inherit;
 }
 
