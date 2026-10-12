@@ -8,7 +8,7 @@
 | 代码路径 | `/home/ubuntu/ai-project/WayNote` |
 | 运行账号 | `ubuntu`（**不建系统账号**） |
 | 后端 | systemd 服务 `waynote` → `127.0.0.1:8010`（开机自启） |
-| 对外访问 | nginx 站点 `8090` → `http://<服务器IP>:8090/` |
+| 对外访问 | **`https://waynote.cn`**（80 → 301 → 443，Let's Encrypt）；`8090` 保留为应急兜底 |
 | 数据库 | PostgreSQL 16（本机 5432，库/用户均为 `waynote`） |
 | 日志 | `<代码路径>/backend/logs`（代码自动创建，按天轮转 14 天） |
 
@@ -23,6 +23,16 @@
 ```bash
 sudo ss -ltnp | grep -E ':(8010|8090)\b' || echo "8010/8090 都空着，可以部署"
 ```
+
+### 域名与 HTTPS（2026-10-12 上线）
+
+| 项 | 实际值 |
+| --- | --- |
+| 域名 | `waynote.cn` / `www.waynote.cn`（DNS 在 DNSPod，A 记录 → 本机 IP） |
+| 备案 | 辽ICP备2026015937号-2（落地页页脚悬挂并链接工信部备案官网） |
+| 证书 | Let's Encrypt（`certbot --nginx` 签发，`certbot.timer` 自动续期；演练 `sudo certbot renew --dry-run`） |
+| nginx | 站点文件 `deploy/nginx.conf`：域名 80/443 块（certbot 管理）+ 8090 兜底块 |
+| 验证 | `curl -sI https://waynote.cn/ \| head -1`、`curl -s https://waynote.cn/api/v1/health` |
 
 ---
 
