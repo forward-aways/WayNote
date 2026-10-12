@@ -35,7 +35,9 @@ mv -f "$DUMP_TMP" "$DUMP_FINAL"
 echo "$PREFIX DB dump 完成：$DUMP_FINAL（$(du -h "$DUMP_FINAL" | cut -f1)）"
 
 # ── 2) media：硬链接快照（未变化文件零额外空间；同日重跑退化为普通同步）──
-if [ -d "$MEDIA_ROOT" ] && [ -n "$(ls -A "$MEDIA_ROOT" 2>/dev/null)" ]; then
+# 只有"目录不存在"（首次部署）才跳过；目录存在但为空也要快照（清空状态是事实，
+# 否则删除全部图片后旧快照会残留 —— 2026-10-12 恢复演练发现的边界，见 ADR 备份篇 §3.2）
+if [ -d "$MEDIA_ROOT" ]; then
   SNAP="$MEDIA_SNAP_DIR/media-$TODAY"
   PREV="$(readlink -f "$MEDIA_SNAP_DIR/current" 2>/dev/null || true)"
   if [ -n "$PREV" ] && [ -d "$PREV" ] && [ "$PREV" != "$SNAP" ]; then
@@ -46,7 +48,7 @@ if [ -d "$MEDIA_ROOT" ] && [ -n "$(ls -A "$MEDIA_ROOT" 2>/dev/null)" ]; then
   ln -sfn "$SNAP" "$MEDIA_SNAP_DIR/current"
   echo "$PREFIX media 快照完成：$SNAP（$(find "$SNAP" -type f | wc -l) 个文件）"
 else
-  echo "$PREFIX media 目录为空或不存在，跳过快照"
+  echo "$PREFIX media 目录不存在（首次部署），跳过快照"
 fi
 
 # ── 3) 保留策略（先落新产物、再删旧；磁盘紧张时宁可少一份历史）──

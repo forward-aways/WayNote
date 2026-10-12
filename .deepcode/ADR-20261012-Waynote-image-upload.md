@@ -173,3 +173,30 @@ ALTER TABLE places ADD COLUMN photo VARCHAR(500) NULL;   -- 相对 key；NULL=�
 - 孤儿文件（上传未引用）：量级小；后续加 TTL 清理任务。
 - 单图制：地点多图相册留待 v2（上传链路可直接复用）。
 - 迁移 COS 的步骤（未来）：实现 `storage_cos.py` → `rclone/coscli` 搬运 → `settings.media_root`/`public_url` 切换 → 回归 T7–T8 → 无需改 DB。
+
+---
+
+## 10. 验证与上线记录（Phase 4/5，2026-10-12）
+
+### 10.1 验证证据
+
+- **后端 76 测试全绿**（65 存量 + 11 新增）：上传成功路径/未鉴权 401/伪装文件/超限/1×1 与解压炸弹/GPS+方向 EXIF 抹除与纠正/频控 429/归属与目录穿越（含 `../`、异人 key、非法格式）/替换与清空清理/删除联动清理/管线单测（透明 PNG、CMYK、动图首帧、空载荷）。
+- **E2E 16 断言全通过**（CDP 真实文件选择 `DOM.setFileInputFiles` → 前端压缩 → 上传 → 预览 [缩略图] → 保存 → hero 头图 [原图，fetch 200] → 地点行缩略图 → 列表卡封面条 → **服务端落盘结构 `uid/年/月/hex.jpg` + `.thumb.jpg`** → 删除行程后文件被清理）。
+- **前端守卫**：check:tokens / oxlint / eslint / type-check / build 全绿。
+- **线上冒烟**：`https://waynote.cn/` 200；`/media/` 直供（存在文件 200 `image/jpeg`、不存在 404 不回落 SPA）；上传端点未鉴权 401；`/docs`、`/openapi.json` 直连后端 404（文档未注册）。
+- **迁移**：本地 upgrade 往返 + 服务器 `c4a7d92b6e15 → d8e1a4f7c9b2` 已应用（head）✓。
+
+### 10.2 实施偏差
+
+| # | 设计原文 | 实施 | 理由 |
+|---|---|---|---|
+| ① | 上传响应 `{key,width,height,bytes}` | 额外含 `url` | 让"存储缝"真实可用（未来 COS 需要绝对 URL）；前端渲染仍统一走 `utils/media.ts` |
+| ② | 未设定最小边长 | 增加 `MIN_EDGE=64` 拒绝占位/追踪像素 | ADR T3 已把 1×1 定义为 400；实现补齐 |
+| ③ | 缩略图 key 未明确正则 | `path_of` 接受 `.thumb.jpg`、`validate_key`（对外引用）拒绝之 | 首轮测试即抓到"缩略图被自己的校验拒了"的 500，见 §6 防复发第 1 条 |
+
+### 10.3 上线记录
+
+- 提交：`9e580e5`（30 files, +1416；含两份 ADR、迁移、测试、前端、nginx、备份脚本与 cron）。
+- 服务器：`update.sh` 一键完成（代码 → `uv sync` 装 Pillow → 迁移 → 重启 → 健康检查）；`MEDIA_ROOT=/home/ubuntu/waynote-media` 已写入 `.env` 并建目录；nginx 两个 server 块加 `/media/` 直供与 6m 上传上限（改前备份）。
+- 前端 dist：md5 与本地一致；备份 cron 已安装（03:30）。
+- 待办：GitHub 推送待代理恢复；**真人真机验证**：请用户在 https://waynote.cn 给自己的行程上传一张封面与地点照片（唯一需要用户账号的环节）。
