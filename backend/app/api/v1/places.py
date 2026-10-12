@@ -9,6 +9,7 @@ from app.models.trip_day import TripDay
 from app.models.place import Place, apply_done_state
 from app.schemas.place import PlaceCreate, PlaceUpdate, PlaceOut
 from app.api.deps import get_current_user
+from app.core import storage
 from app.core.logging import get_logger
 
 
@@ -82,11 +83,19 @@ def update_place(
     payload = data.model_dump(exclude_unset=True)
     # fields 在状态位弹出前取：日志要覆盖 done 这类"不直接 setattr"的字段
     fields = ",".join(payload.keys()) or "-"
+    old_photo = place.photo
 
     if "day_id" in payload and payload["day_id"] is not None:
         day = db.get(TripDay, payload["day_id"])
         if not day or day.trip_id != trip_id:
             raise HTTPException(status_code=400, detail="day_id 不属于该行程")
+
+    # photo 引用：必须是本人的合法 media key（null=清除；见 ADR-20261012 图片篇 §4.3/§4.5）
+    if "photo" in payload and payload["photo"] is not None:
+        try:
+            storage.validate_key(payload["photo"], current_user.id)
+        except storage.MediaKeyInvalid:
+            raise HTTPException(status_code=400, detail="照片引用无效") from None
 
     # done 是布尔状态位：显式 null 无意义（列 NOT NULL），直接 422 拒绝；
     # 状态迁移走 apply_done_state（不变量 I1 的唯一维护点，见 ADR-20261012 §5.3）
@@ -101,6 +110,11 @@ def update_place(
 
     db.commit()
     db.refresh(place)
+
+    # 先提交、后删文件：提交失败绝不能先删；清理失败只留孤儿，不影响正确性
+    if old_photo and old_photo != place.photo:
+        storage.delete_image(old_photo)
+
     log.info(
         "更新地点 trip=%s place=%s fields=%s",
         trip_id,
@@ -124,6 +138,10 @@ def delete_place(
     if not place or place.trip_id != trip_id:
         raise HTTPException(status_code=404, detail="地点不存在")
 
+    place_photo = place.photo  # 提交前取（删除后对象不可用）
     db.delete(place)
     db.commit()
+    # 媒体清理（photo 在提交前取；见 ADR-20261012 图片篇 §4.5）
+    if place_photo:
+        storage.delete_image(place_photo)
     log.info("删除地点 trip=%s place=%s", trip_id, place_id, extra={"event": "place.delete"})

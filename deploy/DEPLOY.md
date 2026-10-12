@@ -34,6 +34,44 @@ sudo ss -ltnp | grep -E ':(8010|8090)\b' || echo "8010/8090 都空着，可以�
 | nginx | 站点文件 `deploy/nginx.conf`：域名 80/443 块（certbot 管理）+ 8090 兜底块 |
 | 验证 | `curl -sI https://waynote.cn/ \| head -1`、`curl -s https://waynote.cn/api/v1/health` |
 
+### 图片媒体（本地存储）
+
+| 项 | 实际值 |
+| --- | --- |
+| 存储根 | `MEDIA_ROOT=/home/ubuntu/waynote-media`（独立目录、不进代码仓库；见 ADR-20261012 图片篇） |
+| 直供 | nginx `location /media/` → `alias /home/ubuntu/waynote-media/`（长缓存 + nosniff，不走应用） |
+| 上传 | `POST /api/v1/uploads/images`（≤4MB，前端会先压缩）；nginx `client_max_body_size 6m` |
+| 迁移 COS | 换 `app/core/storage.py` 实现 + 搬文件 + 改 `MEDIA_URL_PREFIX`；数据库存的是相对 key，无需改动 |
+
+### 备份与恢复（每日 03:30 自动）
+
+```bash
+# 手动执行一次
+bash /home/ubuntu/ai-project/WayNote/deploy/waynote-backup.sh
+
+# 产物（~/backups，700；保留 14 份）
+#   db/waynote-YYYYMMDD.dump      数据库（pg_dump -Fc，自检通过后原子改名）
+#   media/current -> media-*      media 硬链接快照（增量≈当日新增）
+#   backup.log                    每次运行日志
+```
+
+**恢复演练（已验证过一次）：**
+
+```bash
+# 1) 数据库：恢复到临时库并比对计数
+sudo -u postgres createdb waynote_restore_test
+sudo -u postgres pg_restore -d waynote_restore_test ~/backups/db/waynote-<日期>.dump
+sudo -u postgres psql -d waynote_restore_test -c "SELECT (SELECT count(*) FROM users) users, (SELECT count(*) FROM trips) trips, (SELECT count(*) FROM places) places;"
+sudo -u postgres psql -d waynote          -c "SELECT (SELECT count(*) FROM users) users, (SELECT count(*) FROM trips) trips, (SELECT count(*) FROM places) places;"
+sudo -u postgres dropdb waynote_restore_test
+
+# 2) media：从快照恢复（示例：恢复全部文件到原目录）
+rsync -a --delete ~/backups/media/current/ /home/ubuntu/waynote-media/
+
+# 3) 拉一份到本机（异地容灾的最小手段；整盘故障时备份同盘会一起丢，见 ADR §6）
+#    scp -r ubuntu@81.70.160.226:/home/ubuntu/backups/db ./
+```
+
 ---
 
 ## 1. 装 PostgreSQL

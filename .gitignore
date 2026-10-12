@@ -24,3 +24,6 @@ wheels/
 
 # 运行期日志（保留策略见 ADR-20260929 日志方案）
 backend/logs/
+
+# 本地媒体（开发环境默认落 backend/uploads；生产用独立目录，见 ADR-20261012）
+backend/uploads/

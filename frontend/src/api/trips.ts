@@ -50,6 +50,8 @@ export interface TripUpdate {
   end_date?: string | null
   description?: string | null
   status?: string
+  /** 封面 media key：省略=不改；null=清除（服务端校验归属） */
+  cover?: string | null
 }
 
 export async function updateTrip(id: number, data: TripUpdate): Promise<Trip> {

@@ -29,6 +29,8 @@ class PlaceUpdate(BaseModel):
     # 完成状态（ADR-20261012）：省略=不改；显式 null 由端点拒绝（422），
     # 状态迁移与 done_at 维护见 app.models.place.apply_done_state
     done: bool | None = None
+    # 照片：本人 media key（服务端校验归属）；null=清除；省略=不改（ADR-20261012 图片篇 §4.3）
+    photo: str | None = None
 
 
 class PlaceOut(BaseModel):
@@ -46,6 +48,7 @@ class PlaceOut(BaseModel):
     sort_order: int
     done: bool
     done_at: datetime | None
+    photo: str | None
 
     class Config:
         from_attributes = True

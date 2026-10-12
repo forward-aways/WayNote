@@ -13,6 +13,7 @@ import { createDay, deleteDay, listDays, setDayDone, updateDay } from '@/api/day
 import type { TripDay } from '@/api/days'
 import { createPlace, deletePlace, listPlaces, updatePlace } from '@/api/places'
 import type { Place } from '@/api/places'
+import { uploadImage } from '@/api/uploads'
 import { recallTripHint } from '@/utils/tripHint'
 import {
   PHASE_LABEL,
@@ -30,7 +31,10 @@ import {
   weekdayCN,
 } from '@/utils/trip'
 import { apiErrorMessage, apiErrorStatus } from '@/utils/error'
+import { compressImage } from '@/utils/imageCompress'
+import { mediaUrl, thumbUrl } from '@/utils/media'
 import { progressOf } from '@/utils/progress'
+import type { Ref } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -66,6 +70,8 @@ const daysWithProgress = computed(() =>
 )
 /** 整程进度（含待定地点，口径与列表接口 done_count 一致） */
 const tripProgress = computed(() => progressOf(places.value))
+/** 封面 URL（key → URL 的唯一映射在 utils/media） */
+const coverUrl = computed(() => mediaUrl(trip.value?.cover))
 
 /** 接力数据已知有日程时，不闪出"生成日程"引导（避免提示出现又立刻消失） */
 const hasKnownDays = computed(() =>
@@ -88,6 +94,7 @@ const tripForm = ref({
   start_date: '',
   end_date: '',
   description: '',
+  cover: null as string | null,
 })
 
 function openTripSheet() {
@@ -98,6 +105,7 @@ function openTripSheet() {
     start_date: toDayString(trip.value.start_date) ?? '',
     end_date: toDayString(trip.value.end_date) ?? '',
     description: trip.value.description ?? '',
+    cover: trip.value.cover,
   }
   tripSheetVisible.value = true
 }
@@ -120,6 +128,7 @@ async function saveTrip() {
       start_date: tripForm.value.start_date || null,
       end_date: tripForm.value.end_date || null,
       description: tripForm.value.description.trim() || null,
+      cover: tripForm.value.cover,
     })
     ElMessage.success('行程已更新')
     tripSheetVisible.value = false
@@ -279,6 +288,7 @@ const placeForm = ref({
   notes: '',
   lat: undefined as number | undefined,
   lng: undefined as number | undefined,
+  photo: null as string | null,
 })
 
 /** el-select 的 clear 会给出非数字值，统一归一化为 null（待定） */
@@ -299,6 +309,7 @@ function openPlaceSheet(dayId?: number | null, place?: Place) {
       notes: place.notes ?? '',
       lat: place.lat ?? undefined,
       lng: place.lng ?? undefined,
+      photo: place.photo,
     }
   } else {
     editingPlaceId.value = null
@@ -312,6 +323,7 @@ function openPlaceSheet(dayId?: number | null, place?: Place) {
       notes: '',
       lat: undefined,
       lng: undefined,
+      photo: null,
     }
   }
   placeSheetVisible.value = true
@@ -342,6 +354,7 @@ async function savePlace() {
     notes: placeForm.value.notes.trim() || null,
     lat: placeForm.value.lat ?? null,
     lng: placeForm.value.lng ?? null,
+    photo: placeForm.value.photo,
   }
 
   placeSaving.value = true
@@ -443,6 +456,53 @@ async function completeDay(day: TripDay) {
   }
 }
 
+/* ===== 图片（ADR-20261012 图片篇）：选中即压缩+上传，保存时随表单提交 key ===== */
+const coverInput = ref<HTMLInputElement | null>(null)
+const photoInput = ref<HTMLInputElement | null>(null)
+const coverUploading = ref(false)
+const photoUploading = ref(false)
+
+function pickCover() {
+  coverInput.value?.click()
+}
+
+function pickPhoto() {
+  photoInput.value?.click()
+}
+
+/** 通用：压缩（顺带转 HEIC）→ 上传 → 用返回的 key 回填表单；失败提示并保留原值 */
+async function uploadPicked(
+  file: File | undefined,
+  apply: (key: string) => void,
+  uploading: Ref<boolean>,
+) {
+  if (!file) return
+  uploading.value = true
+  try {
+    const compressed = await compressImage(file)
+    const result = await uploadImage(compressed)
+    apply(result.key)
+  } catch (error: unknown) {
+    ElMessage.error(apiErrorMessage(error, '图片上传失败，请重试'))
+  } finally {
+    uploading.value = false
+  }
+}
+
+async function onCoverPicked(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = '' // 允许连续选择同一文件
+  await uploadPicked(file, (key) => (tripForm.value.cover = key), coverUploading)
+}
+
+async function onPhotoPicked(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  await uploadPicked(file, (key) => (placeForm.value.photo = key), photoUploading)
+}
+
 /** 模板安全的地图链接（无坐标时返回 undefined，配合 v-if 使用） */
 function mapHref(place: Place): string | undefined {
   return tencentMapUrl(place) ?? undefined
@@ -490,6 +550,15 @@ onMounted(loadAll)
     <main v-else class="wy-container content wy-bottom-safe">
       <!-- 行程头部 -->
       <section class="hero wy-card">
+        <el-image
+          v-if="coverUrl"
+          class="hero-cover"
+          :src="coverUrl"
+          :preview-src-list="coverUrl ? [coverUrl] : []"
+          fit="cover"
+          preview-teleported
+          hide-on-click-modal
+        />
         <div class="hero-top">
           <TagChip :text="PHASE_LABEL[phase]" :tone="PHASE_TONE[phase]" size="md" />
           <div class="hero-actions">
@@ -643,6 +712,15 @@ onMounted(loadAll)
                   </p>
                   <p v-if="place.notes" class="place-notes">{{ place.notes }}</p>
                 </div>
+                <el-image
+                  v-if="place.photo"
+                  class="place-thumb"
+                  :src="thumbUrl(place.photo)"
+                  :preview-src-list="[mediaUrl(place.photo) ?? '']"
+                  fit="cover"
+                  preview-teleported
+                  hide-on-click-modal
+                />
                 <div class="place-actions">
                   <button
                     class="icon-btn"
@@ -729,6 +807,15 @@ onMounted(loadAll)
             </p>
             <p v-if="place.notes" class="place-notes">{{ place.notes }}</p>
           </div>
+          <el-image
+            v-if="place.photo"
+            class="place-thumb"
+            :src="thumbUrl(place.photo)"
+            :preview-src-list="[mediaUrl(place.photo) ?? '']"
+            fit="cover"
+            preview-teleported
+            hide-on-click-modal
+          />
           <div class="place-actions">
             <el-dropdown trigger="click" @command="(command: string | number | object) => assignTo(command, place)">
               <button class="text-btn" type="button">安排到某天</button>
@@ -799,6 +886,24 @@ onMounted(loadAll)
         </div>
         <el-form-item label="描述">
           <el-input v-model="tripForm.description" type="textarea" :rows="3" maxlength="500" />
+        </el-form-item>
+        <el-form-item label="封面">
+          <div class="media-picker">
+            <template v-if="tripForm.cover">
+              <img class="media-preview cover" :src="thumbUrl(tripForm.cover)" alt="" />
+              <div class="media-picker-actions">
+                <button class="text-btn" type="button" :disabled="coverUploading" @click="pickCover">
+                  {{ coverUploading ? '上传中…' : '更换' }}
+                </button>
+                <button class="text-btn" type="button" @click="tripForm.cover = null">移除</button>
+              </div>
+            </template>
+            <button v-else class="media-add" type="button" :disabled="coverUploading" @click="pickCover">
+              <AppIcon name="image" :size="16" />
+              {{ coverUploading ? '上传中…' : '添加封面' }}
+            </button>
+            <input ref="coverInput" class="media-input" type="file" accept="image/*" @change="onCoverPicked" />
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -885,6 +990,24 @@ onMounted(loadAll)
         <el-form-item label="备注">
           <el-input v-model="placeForm.notes" type="textarea" :rows="2" maxlength="1000" placeholder="可选" />
         </el-form-item>
+        <el-form-item label="照片">
+          <div class="media-picker">
+            <template v-if="placeForm.photo">
+              <img class="media-preview photo" :src="thumbUrl(placeForm.photo)" alt="" />
+              <div class="media-picker-actions">
+                <button class="text-btn" type="button" :disabled="photoUploading" @click="pickPhoto">
+                  {{ photoUploading ? '上传中…' : '更换' }}
+                </button>
+                <button class="text-btn" type="button" @click="placeForm.photo = null">移除</button>
+              </div>
+            </template>
+            <button v-else class="media-add" type="button" :disabled="photoUploading" @click="pickPhoto">
+              <AppIcon name="image" :size="16" />
+              {{ photoUploading ? '上传中…' : '添加照片' }}
+            </button>
+            <input ref="photoInput" class="media-input" type="file" accept="image/*" @change="onPhotoPicked" />
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <div class="sheet-footer">
@@ -927,10 +1050,18 @@ onMounted(loadAll)
 
 /* 头部 */
 .hero {
+  --hero-pad: var(--wy-s6);
   position: relative;
   overflow: hidden;
-  padding: var(--wy-s6);
+  padding: var(--hero-pad);
   margin-bottom: var(--wy-s6);
+}
+/* 封面头图：负 margin 抵消 hero 内边距，四角由卡片圆角裁切（ADR-20261012 图片篇 §4.7） */
+.hero-cover {
+  display: block;
+  height: 190px;
+  margin: calc(-1 * var(--hero-pad)) calc(-1 * var(--hero-pad)) var(--wy-s4);
+  cursor: zoom-in;
 }
 .hero-top {
   display: flex;
@@ -1153,6 +1284,14 @@ onMounted(loadAll)
 .place-toggle {
   margin-top: 2px;
 }
+/* 地点行缩略图（ADR-20261012 图片篇 §4.7）：点击放大预览 */
+.place-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--wy-r-sm);
+  flex-shrink: 0;
+  cursor: zoom-in;
+}
 .place-row.is-done .place-main {
   opacity: 0.58;
 }
@@ -1318,6 +1457,58 @@ onMounted(loadAll)
   gap: var(--wy-s2);
 }
 
+/* 媒体选择器（表单内，ADR-20261012 图片篇 §4.7） */
+.media-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--wy-s3);
+}
+.media-preview {
+  border-radius: var(--wy-r-sm);
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: var(--wy-shadow-1);
+}
+.media-preview.cover {
+  width: 148px;
+  aspect-ratio: 16 / 7;
+}
+.media-preview.photo {
+  width: 84px;
+  height: 84px;
+}
+.media-picker-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--wy-s1);
+}
+.media-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--wy-r-sm);
+  background: color-mix(in srgb, var(--wy-accent-base) 10%, rgba(255, 255, 255, 0.5));
+  color: var(--wy-ink-2);
+  font-size: var(--wy-text-sm);
+  cursor: pointer;
+  transition:
+    background var(--wy-dur) var(--wy-ease),
+    color var(--wy-dur) var(--wy-ease);
+}
+.media-add:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--wy-accent-base) 16%, rgba(255, 255, 255, 0.5));
+  color: var(--wy-primary-strong);
+}
+.media-add:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.media-input {
+  display: none;
+}
+
 /* FAB */
 .fab {
   position: fixed;
@@ -1357,7 +1548,11 @@ onMounted(loadAll)
 }
 @media (max-width: 767px) {
   .hero {
-    padding: var(--wy-s4);
+    --hero-pad: var(--wy-s4);
+    padding: var(--hero-pad);
+  }
+  .hero-cover {
+    height: 150px;
   }
   .day-head {
     flex-direction: column;

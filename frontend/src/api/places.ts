@@ -17,6 +17,8 @@ export interface Place {
   done: boolean
   /** 完成时间（仅服务端写入；done=false 时恒为 null） */
   done_at: string | null
+  /** 照片 media key（相对标识；展示走 utils/media.ts；见 ADR-20261012 图片篇） */
+  photo: string | null
 }
 
 export interface PlaceCreate {
@@ -46,6 +48,8 @@ export async function createPlace(tripId: number, data: PlaceCreate): Promise<Pl
 export interface PlaceUpdate extends Partial<PlaceCreate> {
   /** 完成状态：省略=不改；显式 null 会被服务端拒绝（422） */
   done?: boolean
+  /** 照片 media key：省略=不改；null=清除（服务端校验归属） */
+  photo?: string | null
 }
 
 export async function updatePlace(

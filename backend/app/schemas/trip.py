@@ -17,6 +17,8 @@ class TripUpdate(BaseModel):
     end_date: datetime | None = None
     description: str | None = None
     status: str | None = None
+    # 封面：本人 media key（服务端校验归属）；null=清除；省略=不改（ADR-20261012 图片篇 §4.3）
+    cover: str | None = None
 
 
 class TripOut(BaseModel):

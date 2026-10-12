@@ -29,6 +29,10 @@ class Place(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
+    # 照片：媒体 key（相对标识，形状/归属校验见 core/storage.py；NULL=无照片）
+    # 只存 key 不存 URL —— 内容与位置分离，换存储/域名不影响存量引用（ADR-20261012 图片篇 §4.2）
+    photo: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     # 完成状态（ADR-20261012）：天/整程进度全部由它派生，是唯一事实来源。
     # 不变量 I1：done_at IS NULL ⟺ done = false —— 由 apply_done_state 唯一维护，
     # DB CHECK ck_places_done_at_consistent 兜底拒写非法态（防复发机制 1）。

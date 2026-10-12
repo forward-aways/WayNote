@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.core.config import settings
@@ -7,7 +8,7 @@ from app.core.logging import get_logger, setup_logging
 from app.core.middleware import RequestContextMiddleware
 from app.core.net import parse_trusted_proxies
 from app.db.session import engine
-from app.api.v1 import auth, client_logs, places, trip_days, trips
+from app.api.v1 import auth, client_logs, places, trip_days, trips, uploads
 
 
 # 日志必须在应用构建前装配（幂等）
@@ -42,6 +43,14 @@ app.include_router(trips.router, prefix="/api/v1")
 app.include_router(trip_days.router, prefix="/api/v1")
 app.include_router(places.router, prefix="/api/v1")
 app.include_router(client_logs.router, prefix="/api/v1")
+app.include_router(uploads.router, prefix="/api/v1")
+
+# 媒体文件：开发环境由后端直供（生产由 nginx 的 /media/ location 接管，见 ADR-20261012 §4.6）
+app.mount(
+    settings.media_url_prefix,
+    StaticFiles(directory=settings.media_root, check_dir=False),
+    name="media",
+)
 
 
 @app.get("/")

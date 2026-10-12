@@ -1,0 +1,14 @@
+# 途笺 WayNote · 每日备份（数据库 + media 目录）
+#
+# 安装：
+#   sudo cp /home/ubuntu/ai-project/WayNote/deploy/waynote-backup.cron /etc/cron.d/waynote-backup
+#   sudo chmod 644 /etc/cron.d/waynote-backup
+#   mkdir -p /home/ubuntu/backups          # 重定向目标目录必须先存在
+#
+# 为什么 03:30：错开 04:30 的过期验证码清理（/etc/cron.d/waynote-cleanup）。
+# 为什么用系统 cron：与清理任务同一先例；启动路径越短越好（见 ADR-20261012 备份篇 §5）。
+# 产物在 ~/backups（与数据同盘——只防误删/坏迁移，不防整盘故障；异地方案见 ADR §6）。
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+30 3 * * * ubuntu /bin/bash /home/ubuntu/ai-project/WayNote/deploy/waynote-backup.sh >> /home/ubuntu/backups/backup.log 2>&1

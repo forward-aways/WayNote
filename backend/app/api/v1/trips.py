@@ -9,6 +9,7 @@ from app.models.trip_day import TripDay
 from app.models.place import Place
 from app.schemas.trip import TripCreate, TripUpdate, TripOut, TripListItem
 from app.api.deps import get_current_user
+from app.core import storage
 from app.core.logging import get_logger
 
 
@@ -106,11 +107,25 @@ def update_trip(
 
     # 更新行程信息, model_dump(exclude_unset=True)表示只更新非空字段
     payload = data.model_dump(exclude_unset=True)
+    old_cover = trip.cover
+
+    # cover 引用：必须是本人的合法 media key（null=清除；见 ADR-20261012 图片篇 §4.3/§4.5）
+    if "cover" in payload and payload["cover"] is not None:
+        try:
+            storage.validate_key(payload["cover"], current_user.id)
+        except storage.MediaKeyInvalid:
+            raise HTTPException(status_code=400, detail="封面引用无效") from None
+
     for key, value in payload.items():
         setattr(trip, key, value)
 
     db.commit()
     db.refresh(trip)
+
+    # 先提交、后删文件：提交失败绝不能先删；清理失败只留孤儿，不影响正确性
+    if old_cover and old_cover != trip.cover:
+        storage.delete_image(old_cover)
+
     log.info(
         "更新行程 id=%s fields=%s",
         trip.id,
@@ -131,7 +146,20 @@ def delete_trip(
     if not trip or trip.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="行程不存在")
 
-    # 删除行程
+    # 媒体 keys 在提交前收集（级联删除后对象不可用；见 ADR-20261012 图片篇 §4.5）
+    cover = trip.cover
+    photos = (
+        db.execute(
+            select(Place.photo).where(Place.trip_id == trip_id, Place.photo.is_not(None))
+        )
+        .scalars()
+        .all()
+    )
+
+    # 删除行程（days/places 由数据库级联清理）
     db.delete(trip)
     db.commit()
+
+    for key in ([cover] if cover else []) + list(photos):
+        storage.delete_image(key)
     log.info("删除行程 id=%s", trip_id, extra={"event": "trip.delete"})

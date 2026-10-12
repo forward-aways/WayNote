@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import TagChip from '@/components/TagChip.vue'
 import type { TripListItem } from '@/api/trips'
+import { thumbUrl } from '@/utils/media'
 import { progressOfCounts } from '@/utils/progress'
 import {
   PHASE_LABEL,
@@ -45,6 +46,9 @@ function onCommand(command: string) {
     @click="emit('open')"
     @keydown.enter.prevent="emit('open')"
   >
+    <div v-if="trip.cover" class="card-cover">
+      <img :src="thumbUrl(trip.cover)" alt="" loading="lazy" />
+    </div>
     <div class="card-body">
       <header class="card-head">
         <h3 class="card-title wy-clamp-2" :title="trip.title">{{ trip.title }}</h3>
@@ -143,6 +147,18 @@ function onCommand(command: string) {
   border-radius: 50%;
   flex-shrink: 0;
   box-shadow: var(--wy-gem-highlight);
+}
+/* 封面条（有封面才渲染；顶部圆角由卡片 overflow:hidden 裁切，ADR-20261012 §4.7） */
+.card-cover {
+  aspect-ratio: 16 / 7;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+}
+.card-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .card-body {
   display: flex;

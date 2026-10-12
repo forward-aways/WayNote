@@ -15,6 +15,11 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
+      // 媒体文件（开发环境由后端 StaticFiles 直供，生产由 nginx /media/ 接管）
+      '/media': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
     },
   },
 })

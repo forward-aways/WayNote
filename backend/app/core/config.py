@@ -65,5 +65,15 @@ class Settings(BaseSettings):
     login_max_failures_per_email: int = 5
     login_failure_window_seconds: int = 300
 
+    # 图片与本地媒体存储（见 .deepcode/ADR-20261012-Waynote-image-upload.md §4.1/§4.6）
+    # 生产 .env 指向独立目录（如 /home/ubuntu/waynote-media，不放在代码仓库内）；
+    # 默认落在 backend/uploads（已 gitignore），与启动时的工作目录无关。
+    media_root: Path = Path(__file__).resolve().parents[2] / "uploads"
+    media_url_prefix: str = "/media"
+    media_max_bytes: int = 4 * 1024 * 1024  # 单图硬上限（前端压缩后通常 300KB~1MB）
+    media_max_edge: int = 2000  # 主图最长边
+    media_thumb_edge: int = 640  # 缩略图最长边
+    media_upload_per_day: int = 100  # 每用户每日上传次数上限（防滥用）
+
 
 settings = Settings()
