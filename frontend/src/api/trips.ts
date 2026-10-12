@@ -16,6 +16,8 @@ export interface Trip {
 export interface TripListItem extends Trip {
   day_count: number
   place_count: number
+  /** 已完成地点数（口径与整程进度一致，含待定地点；ADR-20261012 I4） */
+  done_count: number
 }
 
 export interface TripCreate {

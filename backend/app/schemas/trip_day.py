@@ -21,3 +21,17 @@ class TripDayOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DayDoneIn(BaseModel):
+    """批量完成/取消完成一天的请求体（ADR-20261012 §5.3）。done 必填、不接受 null。"""
+
+    done: bool
+
+
+class DayDoneOut(BaseModel):
+    """批量动作结果：changed = 实际发生状态迁移的地点行数（幂等时可 0）。"""
+
+    day_id: int
+    done: bool
+    changed: int

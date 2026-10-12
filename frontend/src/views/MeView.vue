@@ -18,7 +18,7 @@ const auth = useAuthStore()
 const appearance = useAppearanceStore()
 const router = useRouter()
 
-const stats = ref({ trips: 0, days: 0, places: 0 })
+const stats = ref({ trips: 0, days: 0, places: 0, done: 0 })
 const loadingStats = ref(true)
 const version = import.meta.env.VITE_APP_VERSION ?? 'dev'
 
@@ -41,6 +41,7 @@ async function loadStats() {
       trips: trips.length,
       days: trips.reduce((sum, trip) => sum + trip.day_count, 0),
       places: trips.reduce((sum, trip) => sum + trip.place_count, 0),
+      done: trips.reduce((sum, trip) => sum + trip.done_count, 0),
     }
   } catch {
     // 请求失败已由拦截器记录，这里保持 0 值
@@ -159,7 +160,7 @@ onMounted(() => {
     <section class="stats glass-panel">
       <!-- 加载中：翡翠骨架占位（不用白色加载遮罩） -->
       <div v-if="loadingStats" class="sk-stats" aria-hidden="true">
-        <div v-for="n in 3" :key="n" class="wy-skeleton sk-stat" />
+        <div v-for="n in 4" :key="n" class="wy-skeleton sk-stat" />
       </div>
 
       <template v-else>
@@ -174,6 +175,10 @@ onMounted(() => {
         <div class="stat">
           <span class="stat-num wy-num">{{ stats.places }}</span>
           <span class="stat-label">个地点</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num wy-num">{{ stats.done }}</span>
+          <span class="stat-label">已完成</span>
         </div>
       </template>
     </section>
@@ -367,14 +372,14 @@ onMounted(() => {
 }
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   padding: var(--wy-s4);
   border-radius: var(--wy-r-md);
 }
 .sk-stats {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--wy-s4);
 }
 .sk-stat {

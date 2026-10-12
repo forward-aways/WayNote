@@ -13,6 +13,10 @@ export interface Place {
   end_time: string | null
   notes: string | null
   sort_order: number
+  /** 完成状态（ADR-20261012）：天/整程进度由它派生 */
+  done: boolean
+  /** 完成时间（仅服务端写入；done=false 时恒为 null） */
+  done_at: string | null
 }
 
 export interface PlaceCreate {
@@ -39,10 +43,15 @@ export async function createPlace(tripId: number, data: PlaceCreate): Promise<Pl
   return res.data
 }
 
+export interface PlaceUpdate extends Partial<PlaceCreate> {
+  /** 完成状态：省略=不改；显式 null 会被服务端拒绝（422） */
+  done?: boolean
+}
+
 export async function updatePlace(
   tripId: number,
   placeId: number,
-  data: Partial<PlaceCreate>,
+  data: PlaceUpdate,
 ): Promise<Place> {
   const res = await http.patch(`/trips/${tripId}/places/${placeId}`, data)
   return res.data

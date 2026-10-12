@@ -6,7 +6,8 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.trip import Trip
 from app.models.trip_day import TripDay
-from app.schemas.trip_day import TripDayCreate, TripDayUpdate, TripDayOut
+from app.models.place import Place, apply_done_state
+from app.schemas.trip_day import TripDayCreate, TripDayUpdate, TripDayOut, DayDoneIn, DayDoneOut
 from app.api.deps import get_current_user
 from app.core.logging import get_logger
 
@@ -107,3 +108,44 @@ def delete_day(
     db.delete(day)
     db.commit()
     log.info("删除日程 trip=%s day=%s", trip_id, day_id, extra={"event": "day.delete"})
+
+
+# 批量完成/取消完成一天（ADR-20261012 §5.3）：
+# 单次请求 + 同一事务内对该天每行应用同一个状态迁移函数（原子、幂等，
+# changed = 实际迁移的行数；避免前端 N 次 PATCH 产生部分失败态）
+@router.patch("/{day_id}/done", response_model=DayDoneOut)
+def set_day_done(
+    trip_id: int,
+    day_id: int,
+    data: DayDoneIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _get_own_trip(trip_id, db, current_user)
+    day = db.get(TripDay, day_id)
+    if not day or day.trip_id != trip_id:
+        raise HTTPException(status_code=404, detail="Day 不存在")
+
+    places = (
+        db.execute(
+            select(Place).where(Place.trip_id == trip_id, Place.day_id == day_id)
+        )
+        .scalars()
+        .all()
+    )
+    changed = 0
+    for place in places:
+        if place.done != data.done:
+            apply_done_state(place, data.done)
+            changed += 1
+
+    db.commit()
+    log.info(
+        "批量%s日程 trip=%s day=%s changed=%s",
+        "完成" if data.done else "取消完成",
+        trip_id,
+        day_id,
+        changed,
+        extra={"event": "day.done"},
+    )
+    return DayDoneOut(day_id=day_id, done=data.done, changed=changed)

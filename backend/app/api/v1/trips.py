@@ -35,19 +35,31 @@ def list_trips(
         .where(Place.trip_id == Trip.id)
         .scalar_subquery()
     )
+    # 已完成地点数（口径与整程进度一致，含待定地点；见 ADR-20261012 §5.3/I4）
+    done_count = (
+        select(func.count(Place.id))
+        .where(Place.trip_id == Trip.id, Place.done.is_(True))
+        .scalar_subquery()
+    )
 
     # 查询当前用户的行程，并按创建时间降序排列
     rows = db.execute(
-        select(Trip, day_count.label("day_count"), place_count.label("place_count"))
+        select(
+            Trip,
+            day_count.label("day_count"),
+            place_count.label("place_count"),
+            done_count.label("done_count"),
+        )
         .where(Trip.user_id == current_user.id)
         .order_by(Trip.created_at.desc())
     ).all()
 
     items: list[TripListItem] = []
-    for trip, day_total, place_total in rows:
+    for trip, day_total, place_total, done_total in rows:
         item = TripListItem.model_validate(trip)
         item.day_count = day_total
         item.place_count = place_total
+        item.done_count = done_total
         items.append(item)
     return items
 

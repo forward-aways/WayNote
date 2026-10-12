@@ -33,3 +33,20 @@ export async function updateDay(
 export async function deleteDay(tripId: number, dayId: number): Promise<void> {
   await http.delete(`/trips/${tripId}/days/${dayId}`)
 }
+
+export interface DayDoneResult {
+  day_id: number
+  done: boolean
+  /** 实际发生状态迁移的地点行数（重复调用为 0，幂等） */
+  changed: number
+}
+
+/** 批量完成/取消完成一天（单请求原子；ADR-20261012 §5.3） */
+export async function setDayDone(
+  tripId: number,
+  dayId: number,
+  done: boolean,
+): Promise<DayDoneResult> {
+  const res = await http.patch(`/trips/${tripId}/days/${dayId}/done`, { done })
+  return res.data
+}

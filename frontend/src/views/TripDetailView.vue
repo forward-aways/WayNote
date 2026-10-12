@@ -5,10 +5,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import FormSheet from '@/components/FormSheet.vue'
+import PlaceDoneToggle from '@/components/PlaceDoneToggle.vue'
 import TagChip from '@/components/TagChip.vue'
 import { deleteTrip, getTrip, updateTrip } from '@/api/trips'
 import type { Trip } from '@/api/trips'
-import { createDay, deleteDay, listDays, updateDay } from '@/api/days'
+import { createDay, deleteDay, listDays, setDayDone, updateDay } from '@/api/days'
 import type { TripDay } from '@/api/days'
 import { createPlace, deletePlace, listPlaces, updatePlace } from '@/api/places'
 import type { Place } from '@/api/places'
@@ -29,6 +30,7 @@ import {
   weekdayCN,
 } from '@/utils/trip'
 import { apiErrorMessage, apiErrorStatus } from '@/utils/error'
+import { progressOf } from '@/utils/progress'
 
 const route = useRoute()
 const router = useRouter()
@@ -57,6 +59,13 @@ const statsText = computed(() => {
 })
 
 const placesOfDay = (dayId: number) => places.value.filter((place) => place.day_id === dayId)
+
+/** 每天进度（一次 O(P+D) 计算，模板 O(1) 查表；口径集中在 utils/progress） */
+const daysWithProgress = computed(() =>
+  days.value.map((day) => ({ day, progress: progressOf(placesOfDay(day.id)) })),
+)
+/** 整程进度（含待定地点，口径与列表接口 done_count 一致） */
+const tripProgress = computed(() => progressOf(places.value))
 
 /** 接力数据已知有日程时，不闪出"生成日程"引导（避免提示出现又立刻消失） */
 const hasKnownDays = computed(() =>
@@ -395,6 +404,45 @@ async function movePlace(list: Place[], index: number, delta: number) {
   }
 }
 
+/* ===== 完成勾选（ADR-20261012：地点级单一事实来源） ===== */
+const busyPlaceIds = ref(new Set<number>())
+const dayBusyId = ref<number | null>(null)
+
+/** 单击勾选：乐观更新（四处进度即时响应）→ 成功以服务端响应为准 → 失败回滚并提示 */
+async function togglePlaceDone(place: Place) {
+  if (busyPlaceIds.value.has(place.id)) return
+  const next = !place.done
+  const prev = { done: place.done, done_at: place.done_at }
+  busyPlaceIds.value.add(place.id)
+  place.done = next
+  place.done_at = next ? (prev.done_at ?? new Date().toISOString()) : null
+  try {
+    const updated = await updatePlace(tripId.value, place.id, { done: next })
+    const index = places.value.findIndex((item) => item.id === place.id)
+    if (index >= 0) places.value[index] = updated
+  } catch (error: unknown) {
+    place.done = prev.done
+    place.done_at = prev.done_at
+    ElMessage.error(apiErrorMessage(error, '操作失败，请重试'))
+  } finally {
+    busyPlaceIds.value.delete(place.id)
+  }
+}
+
+/** 当天「全部完成」：单请求原子批量；沿用既有"变更后整体刷新"模式 */
+async function completeDay(day: TripDay) {
+  if (dayBusyId.value !== null) return
+  dayBusyId.value = day.id
+  try {
+    await setDayDone(tripId.value, day.id, true)
+    await loadAll()
+  } catch (error: unknown) {
+    ElMessage.error(apiErrorMessage(error, '批量完成失败'))
+  } finally {
+    dayBusyId.value = null
+  }
+}
+
 /** 模板安全的地图链接（无坐标时返回 undefined，配合 v-if 使用） */
 function mapHref(place: Place): string | undefined {
   return tencentMapUrl(place) ?? undefined
@@ -473,6 +521,21 @@ onMounted(loadAll)
         </p>
         <p v-if="trip.description" class="hero-desc">{{ trip.description }}</p>
         <p class="hero-stats">{{ statsText }}</p>
+        <div v-if="tripProgress" class="hero-progress">
+          <div
+            class="wy-progress hero-progress-track"
+            role="progressbar"
+            :aria-valuenow="tripProgress.percent"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-label="`地点完成进度：${tripProgress.done}/${tripProgress.total}`"
+          >
+            <div class="wy-progress-fill" :style="{ width: `${tripProgress.percent}%` }" />
+          </div>
+          <span class="hero-progress-text wy-num">
+            已完成 {{ tripProgress.done }}/{{ tripProgress.total }} · {{ tripProgress.percent }}%
+          </span>
+        </div>
       </section>
 
       <!-- 生成日程引导 -->
@@ -496,7 +559,7 @@ onMounted(loadAll)
       </div>
 
       <div v-if="days.length" class="timeline">
-        <section v-for="day in days" :key="day.id" class="day-block">
+        <section v-for="{ day, progress } in daysWithProgress" :key="day.id" class="day-block">
           <div class="day-node" aria-hidden="true" />
           <div class="day-card wy-card">
             <header class="day-head">
@@ -511,6 +574,24 @@ onMounted(loadAll)
                 </div>
               </div>
               <div class="day-actions">
+                <span
+                  v-if="progress"
+                  class="day-progress wy-num"
+                  :class="{ 'is-complete': progress.done === progress.total }"
+                >
+                  <AppIcon v-if="progress.done === progress.total" name="check" :size="12" />
+                  {{ progress.done === progress.total ? '已完成' : `${progress.done}/${progress.total}` }}
+                </span>
+                <button
+                  v-if="progress && progress.done < progress.total"
+                  class="text-btn"
+                  type="button"
+                  :disabled="dayBusyId === day.id"
+                  @click="completeDay(day)"
+                >
+                  <AppIcon name="check" :size="15" />
+                  全部完成
+                </button>
                 <button class="text-btn" type="button" @click="openPlaceSheet(day.id)">
                   <AppIcon name="plus" :size="15" />
                   地点
@@ -531,7 +612,15 @@ onMounted(loadAll)
                 v-for="(place, index) in placesOfDay(day.id)"
                 :key="place.id"
                 class="place-row"
+                :class="{ 'is-done': place.done }"
               >
+                <PlaceDoneToggle
+                  class="place-toggle"
+                  :done="place.done"
+                  :name="place.name"
+                  :busy="busyPlaceIds.has(place.id)"
+                  @toggle="togglePlaceDone(place)"
+                />
                 <div class="place-main">
                   <div class="place-title-line">
                     <span v-if="timeText(place)" class="time-chip wy-num">{{ timeText(place) }}</span>
@@ -606,7 +695,19 @@ onMounted(loadAll)
           </div>
         </header>
 
-        <article v-for="(place, index) in unassigned" :key="place.id" class="place-row">
+        <article
+          v-for="(place, index) in unassigned"
+          :key="place.id"
+          class="place-row"
+          :class="{ 'is-done': place.done }"
+        >
+          <PlaceDoneToggle
+            class="place-toggle"
+            :done="place.done"
+            :name="place.name"
+            :busy="busyPlaceIds.has(place.id)"
+            @toggle="togglePlaceDone(place)"
+          />
           <div class="place-main">
             <div class="place-title-line">
               <span class="place-name">{{ place.name }}</span>
@@ -882,6 +983,22 @@ onMounted(loadAll)
   font-size: var(--wy-text-xs);
   letter-spacing: 0.5px;
 }
+.hero-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--wy-s3);
+  margin-top: var(--wy-s2);
+}
+.hero-progress-track {
+  flex: 1;
+  min-width: 0;
+}
+.hero-progress-text {
+  flex-shrink: 0;
+  color: var(--wy-ink-3);
+  font-size: var(--wy-text-xs);
+  letter-spacing: 0.3px;
+}
 
 /* 生成日程提示 */
 .generate-tip {
@@ -988,6 +1105,25 @@ onMounted(loadAll)
   align-items: center;
   gap: var(--wy-s1);
   flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.day-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--wy-r-full);
+  background: color-mix(in srgb, var(--wy-accent-base) 9%, rgba(255, 255, 255, 0.5));
+  color: var(--wy-ink-2);
+  font-size: var(--wy-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.day-progress.is-complete {
+  background: color-mix(in srgb, var(--wy-accent-base) 18%, rgba(255, 255, 255, 0.4));
+  color: var(--wy-primary-strong);
 }
 
 /* 地点行 */
@@ -1013,6 +1149,16 @@ onMounted(loadAll)
 }
 .place-row:hover {
   background: rgba(255, 255, 255, 0.6);
+}
+.place-toggle {
+  margin-top: 2px;
+}
+.place-row.is-done .place-main {
+  opacity: 0.58;
+}
+.place-row.is-done .place-name {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 .place-main {
   min-width: 0;
@@ -1110,9 +1256,13 @@ onMounted(loadAll)
   cursor: pointer;
   transition: all var(--wy-dur) var(--wy-ease);
 }
-.text-btn:hover {
+.text-btn:hover:not(:disabled) {
   border-color: var(--wy-primary);
   color: var(--wy-primary-strong);
+}
+.text-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .link-btn {
   padding: 0;
@@ -1212,11 +1362,13 @@ onMounted(loadAll)
   .day-head {
     flex-direction: column;
   }
+  /* 勾选圆钮与内容同行；操作按钮换行到第二行右对齐（2026-10-12 加入勾选后） */
   .place-row {
-    flex-direction: column;
+    flex-wrap: wrap;
   }
   .place-actions {
-    align-self: flex-end;
+    flex-basis: 100%;
+    justify-content: flex-end;
   }
   .form-row {
     grid-template-columns: 1fr;

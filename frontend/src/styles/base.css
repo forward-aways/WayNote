@@ -198,6 +198,21 @@ button {
   -webkit-line-clamp: 2;
 }
 
+/* 进度条（地点完成度，ADR-20261012）：轨道 + 翡翠填充；宽度由调用方以 style 绑定 */
+.wy-progress {
+  height: 6px;
+  border-radius: var(--wy-r-full);
+  background: var(--wy-line);
+  overflow: hidden;
+}
+
+.wy-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--wy-grad-brand);
+  transition: width var(--wy-dur) var(--wy-ease);
+}
+
 /* 兼容旧命名：卡片即玻璃面板 */
 .wy-card {
   background: var(--wy-glass-panel-bg);

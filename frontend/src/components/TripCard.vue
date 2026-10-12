@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import TagChip from '@/components/TagChip.vue'
 import type { TripListItem } from '@/api/trips'
+import { progressOfCounts } from '@/utils/progress'
 import {
   PHASE_LABEL,
   PHASE_TONE,
@@ -24,6 +25,10 @@ const statsText = computed(() => {
   if (day_count === 0 && place_count === 0) return '尚未安排日程'
   return [`已安排 ${day_count} 天`, `${place_count} 个地点`].join(' · ')
 })
+/** 地点完成进度（0 地点不渲染；口径与详情页/我的页一致） */
+const tripProgress = computed(() =>
+  progressOfCounts(props.trip.done_count, props.trip.place_count),
+)
 
 function onCommand(command: string) {
   if (command === 'edit') emit('edit')
@@ -60,6 +65,20 @@ function onCommand(command: string) {
       </p>
 
       <p v-if="trip.description" class="card-desc wy-clamp-2">{{ trip.description }}</p>
+    </div>
+
+    <div v-if="tripProgress" class="card-progress">
+      <div
+        class="wy-progress"
+        role="progressbar"
+        :aria-valuenow="tripProgress.percent"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        :aria-label="`地点完成进度：${tripProgress.done}/${tripProgress.total}`"
+      >
+        <div class="wy-progress-fill" :style="{ width: `${tripProgress.percent}%` }" />
+      </div>
+      <span class="card-progress-text wy-num">{{ tripProgress.done }}/{{ tripProgress.total }}</span>
     </div>
 
     <footer class="card-foot">
@@ -168,6 +187,22 @@ function onCommand(command: string) {
   margin: 0;
   color: var(--wy-ink-3);
   font-size: var(--wy-text-sm);
+}
+.card-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--wy-s2);
+  padding: 0 var(--wy-s4) var(--wy-s3);
+}
+.card-progress .wy-progress {
+  flex: 1;
+  min-width: 0;
+}
+.card-progress-text {
+  flex-shrink: 0;
+  color: var(--wy-ink-3);
+  font-size: var(--wy-text-xs);
+  letter-spacing: 0.3px;
 }
 .card-foot {
   display: flex;

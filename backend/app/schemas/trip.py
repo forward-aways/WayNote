@@ -39,4 +39,6 @@ class TripListItem(TripOut):
 
     day_count: int = 0
     place_count: int = 0
+    # 已完成地点数（口径与整程进度一致，含待定地点；见 ADR-20261012 §5.3/I4）
+    done_count: int = 0
 
