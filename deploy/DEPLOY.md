@@ -215,7 +215,7 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8090/
 
 回滚：`rm -rf dist && cp -r dist.bak.<时间戳> dist`
 
-> **字体文件**：`frontend/public/fonts/harmonyos-sans-sc/`（HarmonyOS Sans SC 拆分版，约 9.5MB，**不入库**）。
+> **字体文件**：`frontend/public/fonts/harmonyos-sans-sc/`（HarmonyOS Sans SC 拆分版，四个字重约 19MB，**不入库**）。
 > 新机器首次构建前先跑 `node scripts/fetch-fonts.mjs`；没有它也能构建，只是页面回退到系统字体（不会报错）。
 
 ## 9. 备份（可选）

@@ -12,7 +12,12 @@ import { fileURLToPath } from 'node:url'
 
 const PKG = 'harmonyos-sans-sc-webfont-splitted@1.1.0'
 const CDN = `https://cdn.jsdelivr.net/npm/${PKG}/dist/`
-const WEIGHTS = ['Regular', 'Bold']
+// 四个面 = 代码实际用到的字重（400/500/600/700）：
+// - 500：Element Plus 按钮/标签默认（--el-font-weight-primary）
+// - 600：app 里十几处小标题/标签
+// 缺 Medium/Semibold 时 500 会落到 Regular(400)、600 会落到 Bold(700)
+// ——"写的字重 ≠ 渲染字重"，观感不一致（2026-10-13 补齐）
+const WEIGHTS = ['Regular', 'Medium', 'Semibold', 'Bold']
 const OUT_DIR = join(fileURLToPath(new URL('..', import.meta.url)), 'public', 'fonts', 'harmonyos-sans-sc')
 const CONCURRENCY = 6
 
